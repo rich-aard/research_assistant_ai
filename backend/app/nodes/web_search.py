@@ -16,7 +16,6 @@ async def web_search_node(state: ResearchState) -> ResearchState:
         logger.warning("Research plan is empty. Skipping web search.")
 
         return {
-            **state,
             "web_results": [],
         }
 
@@ -46,8 +45,5 @@ async def web_search_node(state: ResearchState) -> ResearchState:
     )
 
     return {
-        **state,
         "web_results": web_results,
-        "status": "searching",
-        "progress": 35,
     }

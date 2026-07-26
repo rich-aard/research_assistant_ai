@@ -16,20 +16,59 @@ def build_graph():
     workflow = StateGraph(ResearchState)
 
     # nodes
-    workflow.add_node("planner",planner_node,)
-    workflow.add_node("web_search",web_search_node,)
-    workflow.add_node("arxiv_search", arxiv_search_node,)
-    workflow.add_node("writer", writer_node,)
-    workflow.add_node("summarizer", summarizer_node,)
-    workflow.add_node("merge_documents",merge_documents_node,)
+    workflow.add_node(
+        "planner",
+        planner_node,
+    )
+    workflow.add_node(
+        "web_search",
+        web_search_node,
+    )
+    workflow.add_node(
+        "arxiv_search",
+        arxiv_search_node,
+    )
+    workflow.add_node(
+        "writer",
+        writer_node,
+    )
+    workflow.add_node(
+        "summarizer",
+        summarizer_node,
+    )
+    workflow.add_node(
+        "merge_documents",
+        merge_documents_node,
+    )
 
     # edges
-    workflow.add_edge(START,"planner",)
-    workflow.add_edge("planner","web_search",)
-    workflow.add_edge("web_search", "arxiv_search",)
-    workflow.add_edge("arxiv_search","merge_documents",)
-    workflow.add_edge("merge_documents","writer",)
-    workflow.add_edge("writer", "summarizer",)
+    workflow.add_edge(
+        START,
+        "planner",
+    )
+    workflow.add_edge(
+        "planner",
+        "web_search",
+    )
+    workflow.add_edge(
+        "planner",
+        "arxiv_search",
+    )
+    workflow.add_edge(
+        [
+            "web_search",
+            "arxiv_search",
+        ],
+        "merge_documents",
+    )
+    workflow.add_edge(
+        "merge_documents",
+        "writer",
+    )
+    workflow.add_edge(
+        "writer",
+        "summarizer",
+    )
     workflow.add_edge("summarizer", END)
 
     return workflow.compile()

@@ -51,7 +51,7 @@ async def merge_documents_node(
     )
 
     return {
-        **state,
         "merged_documents": documents[:10],
+        "status": "searching",
         "progress": 70,
     }

@@ -7,7 +7,9 @@ from backend.app.prompts.summarizer_prompt import summarizer_prompt
 logger = get_logger(__name__)
 
 llm = get_llm()
-structured_llm = llm.with_structured_output(SummarizerOutput,)
+structured_llm = llm.with_structured_output(
+    SummarizerOutput,
+)
 summarizer_chain = summarizer_prompt | structured_llm
 
 
@@ -25,19 +27,18 @@ async def summarizer_node(state: ResearchState) -> ResearchState:
     try:
         output = await summarizer_chain.ainvoke({"report": report})
         summary = output.summary
-        logger.info("Generated summary for '%s'.",topic,)
+        logger.info(
+            "Generated summary for '%s'.",
+            topic,
+        )
     except Exception:
         logger.exception(
             "Failed to generate executive summary for '%s'",
             topic,
-        )        
-        summary = (
-            "Summary generation failed. "
-            "Please refer to the full research report."
         )
+        summary = "Summary generation failed. Please refer to the full research report."
 
     return {
-        **state,
         "summary": summary,
         "status": "completed",
         "progress": 100,

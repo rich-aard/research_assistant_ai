@@ -57,7 +57,6 @@ async def planner_node(state: ResearchState) -> ResearchState:
         ]
 
     return {
-        **state,
         "research_plan": plan,
         "status": "planning",
         "progress": 10,

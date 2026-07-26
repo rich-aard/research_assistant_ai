@@ -18,7 +18,6 @@ async def arxiv_search_node(state: ResearchState) -> ResearchState:
         )
 
         return {
-            **state,
             "arxiv_results": [],
         }
 
@@ -51,8 +50,5 @@ async def arxiv_search_node(state: ResearchState) -> ResearchState:
     )
 
     return {
-        **state,
         "arxiv_results": arxiv_results,
-        "status": "searching",
-        "progress": 60,
     }
