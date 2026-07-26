@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import Literal, Any
+from typing import Literal
 from uuid import UUID
 
 from typing_extensions import TypedDict
+
+from backend.app.models.search import SearchResult
 
 
 class ResearchState(TypedDict, total=False):
@@ -38,13 +40,11 @@ class ResearchState(TypedDict, total=False):
     research_plan: list[str]
 
     # Search Results
-    web_results: list[dict[str, Any]]
-    arxiv_results: list[dict[str, Any]]
+    web_results: list[SearchResult]
+    arxiv_results: list[SearchResult]
 
     # Before summarization
-    web_documents_raw: list[dict[str, Any]]#raw docs of websearch
-    arxiv_documents_raw: list[dict[str, Any]]#raw docs of arxiv
-    merged_documents: list[dict[str, Any]]#deduplicatd + ranked
+    merged_documents: list[SearchResult]
 
     # Final Output
     summary: str
