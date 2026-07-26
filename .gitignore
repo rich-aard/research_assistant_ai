@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Compiled extensions
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment Variables
+.env
+
+# Keep the template
+!.env.example
+
+# Python Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Local Databases
+*.db
+*.sqlite3
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+
+# Uploaded Documents (optional)
+uploads/
+
+# Generated Reports (optional)
+reports/
+
+
+# Vector Stores 
+vectorstore/
+faiss_index/
