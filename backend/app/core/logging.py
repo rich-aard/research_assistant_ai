@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from app.core.config import settings
+from backend.app.core.config import settings
 
 LOG_DIR = settings.base_dir / "logs"
 LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"

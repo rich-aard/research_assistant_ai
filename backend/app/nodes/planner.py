@@ -1,4 +1,4 @@
-from app.models.state import ResearchState
+from backend.app.models.state import ResearchState
 
 
 async def planner_node(state: ResearchState) -> ResearchState:
