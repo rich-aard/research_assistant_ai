@@ -1,5 +1,6 @@
 from backend.app.clients.groq import get_llm
 from backend.app.core.logging import get_logger
+from backend.app.models.search import SearchResult
 from backend.app.models.state import ResearchState
 from backend.app.prompts.writer_prompt import writer_prompt
 
@@ -10,9 +11,9 @@ llm = get_llm()
 writer_chain = writer_prompt | llm
 
 
-def _format_results(results: list, limit: int = 5) -> str:
+def _format_documents(results: list[SearchResult], limit: int = 5) -> str:
     """
-    Format retrieved search results into a prompt-friendly string.
+    Format retrieved documents into a prompt-friendly string.
     """
     if not results:
         return "No results available."
@@ -33,6 +34,27 @@ def _format_results(results: list, limit: int = 5) -> str:
 
     return "\n\n".join(formatted)
 
+def _format_sources(results: list[SearchResult], limit: int = 5) -> str:
+    """
+    Format source references for citation in the report.
+    """
+    if not results:
+        return "No sources available."
+
+    sources: list[str] = []
+
+    for index, result in enumerate(results[:limit], start=1):
+        sources.append("\n".join(
+        [
+            f"[{index}] {result.title}",
+            str(result.url),
+        ]
+        )
+    )
+
+    return "\n\n".join(sources)
+
+
 
 async def writer_node(state: ResearchState) -> ResearchState:
     """
@@ -47,8 +69,7 @@ async def writer_node(state: ResearchState) -> ResearchState:
     depth = state.get("depth", "standard")
     research_plan = state.get("research_plan", [])
 
-    web_results = state.get("web_results", [])
-    arxiv_results = state.get("arxiv_results", [])
+    merged_documents = state.get("merged_documents", [])
 
     try:
         response = await writer_chain.ainvoke(
@@ -56,8 +77,8 @@ async def writer_node(state: ResearchState) -> ResearchState:
                 "topic": topic,
                 "depth": depth,
                 "research_plan": "\n".join(research_plan),
-                "web_results": _format_results(web_results),
-                "arxiv_results": _format_results(arxiv_results),
+                "documents": _format_documents(merged_documents),
+                "sources": _format_sources(merged_documents),
             }
         )
 
@@ -84,6 +105,6 @@ async def writer_node(state: ResearchState) -> ResearchState:
         **state,
         "report": report,
         "summary": "",
-        "status": "completed",
-        "progress": 100,
+        "status": "writing",
+        "progress": 90,
     }

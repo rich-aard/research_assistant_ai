@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -20,7 +21,7 @@ class SearchResult(BaseModel):
         description="Extracted content or summary of the document.",
     )
 
-    source: str = Field(
+    source: Literal["tavily", "arxiv"] = Field(
         description="Source of the document (e.g. tavily, arxiv).",
     )
 
