@@ -1,3 +1,5 @@
+import asyncio
+
 from backend.app.clients.arxiv import search_arxiv
 from backend.app.core.logging import get_logger
 from backend.app.models.search import SearchResult
@@ -10,11 +12,11 @@ async def arxiv_search_node(state: ResearchState) -> ResearchState:
     """
     Search arXiv for academic papers corresponding to each research step.
     """
-    research_plan = state.get("research_plan", [])
+    queries = state.get("arxiv_queries", [])
 
-    if not research_plan:
+    if not queries:
         logger.warning(
-            "Research plan is empty. Skipping arXiv search.",
+            "No arXiv queries available. Skipping arXiv search.",
         )
 
         return {
@@ -23,10 +25,11 @@ async def arxiv_search_node(state: ResearchState) -> ResearchState:
 
     arxiv_results: list[SearchResult] = []
 
-    for step in research_plan:
+    for query in queries:
         try:
-            results = search_arxiv(
-                step,
+            results = await asyncio.to_thread(
+                search_arxiv,
+                query,
                 max_results=3,
             )
 
@@ -35,13 +38,13 @@ async def arxiv_search_node(state: ResearchState) -> ResearchState:
             logger.info(
                 "Retrieved %d arXiv paper(s) for '%s'",
                 len(results),
-                step,
+                query,
             )
 
         except Exception:
             logger.exception(
                 "arXiv search failed for '%s'",
-                step,
+                query,
             )
 
     logger.info(

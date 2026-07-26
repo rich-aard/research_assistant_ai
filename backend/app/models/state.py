@@ -39,6 +39,10 @@ class ResearchState(TypedDict, total=False):
     # Planning
     research_plan: list[str]
 
+    # Search Queries
+    web_queries: list[str]
+    arxiv_queries: list[str]
+
     # Search Results
     web_results: list[SearchResult]
     arxiv_results: list[SearchResult]

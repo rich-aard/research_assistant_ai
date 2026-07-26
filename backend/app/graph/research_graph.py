@@ -4,6 +4,7 @@ from backend.app.models.state import ResearchState
 from backend.app.nodes.arxiv_search import arxiv_search_node
 from backend.app.nodes.merge_documents import merge_documents_node
 from backend.app.nodes.planner import planner_node
+from backend.app.nodes.query_generator import query_generator_node
 from backend.app.nodes.summarizer import summarizer_node
 from backend.app.nodes.web_search import web_search_node
 from backend.app.nodes.writer import writer_node
@@ -41,6 +42,11 @@ def build_graph():
         merge_documents_node,
     )
 
+    workflow.add_node(
+        "query_generator",
+        query_generator_node,
+    )
+
     # edges
     workflow.add_edge(
         START,
@@ -48,10 +54,14 @@ def build_graph():
     )
     workflow.add_edge(
         "planner",
+        "query_generator",
+    )
+    workflow.add_edge(
+        "query_generator",
         "web_search",
     )
     workflow.add_edge(
-        "planner",
+        "query_generator",
         "arxiv_search",
     )
     workflow.add_edge(
