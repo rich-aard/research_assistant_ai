@@ -4,6 +4,7 @@ from backend.app.models.state import ResearchState
 from backend.app.nodes.arxiv_search import arxiv_search_node
 from backend.app.nodes.planner import planner_node
 from backend.app.nodes.web_search import web_search_node
+from backend.app.nodes.writer import writer_node
 
 
 def build_graph():
@@ -22,6 +23,7 @@ def build_graph():
         web_search_node,
     )
     workflow.add_node("arxiv_search", arxiv_search_node)
+    workflow.add_node("writer", writer_node)
 
     # edges
     workflow.add_edge(
@@ -33,13 +35,8 @@ def build_graph():
         "web_search",
     )
 
-    workflow.add_edge(
-        "web_search", 
-        "arxiv_search"
-        )
-    workflow.add_edge(
-        "arxiv_search", 
-        END
-        )
+    workflow.add_edge("web_search", "arxiv_search")
+    workflow.add_edge("arxiv_search", "writer")
+    workflow.add_edge("writer", END)
 
     return workflow.compile()
