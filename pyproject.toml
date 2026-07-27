@@ -38,6 +38,7 @@ dependencies = [
     "alembic>=1.18.5",
     "aiosqlite>=0.22.1",
     "asyncpg>=0.31.0",
+    "psycopg[binary]>=3.3.4",
 ]
 
 

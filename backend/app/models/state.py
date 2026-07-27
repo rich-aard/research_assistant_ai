@@ -4,6 +4,7 @@ from uuid import UUID
 
 from typing_extensions import TypedDict
 
+from backend.app.models.enums import ResearchDepth
 from backend.app.models.search import SearchResult
 
 
@@ -15,11 +16,7 @@ class ResearchState(TypedDict, total=False):
     # Metadata
     research_id: UUID
     topic: str
-    depth: Literal[
-        "quick",
-        "standard",
-        "comprehensive",
-    ]
+    depth: ResearchDepth
 
     created_at: datetime
     completed_at: datetime | None
@@ -27,13 +24,13 @@ class ResearchState(TypedDict, total=False):
     # Workflow
     status: Literal[
         "queued",
+        "processing",
         "planning",
         "searching",
         "writing",
         "completed",
         "failed",
     ]
-
     progress: int
 
     # Planning

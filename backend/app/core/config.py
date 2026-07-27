@@ -6,6 +6,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[3]
+DATABASE_PATH = BASE_DIR / "data" / "research.db"
 
 
 class Settings(BaseSettings):
@@ -43,8 +44,8 @@ class Settings(BaseSettings):
     )
 
     # chunks values
-    chunk_size: int = 1000
-    chunk_overlap: int = 200
+    chunk_size: int = Field(default=1000, alias="CHUNK_SIZE")
+    chunk_overlap: int = Field(default=200, alias="CHUNK_OVERLAP")
 
     # logging
     log_level: Literal[
@@ -53,14 +54,20 @@ class Settings(BaseSettings):
         "WARNING",
         "ERROR",
         "CRITICAL",
-    ] = "INFO"
+    ] = Field(
+        default="INFO",
+        alias="LOG_LEVEL",
+    )
 
     # Environment
     app_env: Literal[
         "development",
         "production",
         "testing",
-    ] = "development"
+    ] = Field(
+        default="development",
+        alias="APP_ENV",
+    )
 
     # paths for data and vectorstore
     base_dir: Path = BASE_DIR
@@ -80,11 +87,17 @@ class Settings(BaseSettings):
         alias="LANGCHAIN_PROJECT",
     )
 
-
-    #CORS
+    # CORS
     allowed_origins: list[str] = [
-    "http://localhost:8501",
+        "http://localhost:8501",
     ]
+
+    # database url
+    database_url: str = Field(
+        default=f"sqlite+aiosqlite:///{DATABASE_PATH}",
+        alias="DATABASE_URL",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

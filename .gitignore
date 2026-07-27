@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc 
 
 # Compiled extensions
 *.so
@@ -54,6 +55,9 @@ dist/
 tmp/
 temp/
 *.tmp
+
+#cache
+cache/
 
 # Uploaded Documents (optional)
 uploads/

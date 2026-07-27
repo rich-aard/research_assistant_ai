@@ -25,7 +25,7 @@ async def start_research(
     request: ResearchRequest,
     background_tasks: BackgroundTasks,
 ) -> ResearchStartResponse:
-    task = research_service.start_research(request)
+    task = await research_service.start_research(request)
 
     background_tasks.add_task(
         research_service.execute_research,
@@ -45,7 +45,7 @@ async def start_research(
     response_model=ResearchResultResponse,
 )
 async def get_research(research_id: UUID) -> ResearchResultResponse:
-    task = research_service.get_research(research_id)
+    task = await research_service.get_research(research_id)
 
     if task is None:
         raise HTTPException(

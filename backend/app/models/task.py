@@ -1,27 +1,22 @@
 from datetime import datetime
-from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from backend.app.models.enums import ResearchDepth, TaskStatus
+
 
 class ResearchTask(BaseModel):
+    """
+    In-memory representation of a research task.
+    """
     research_id: UUID
 
     topic: str
 
-    depth: Literal[
-        "quick",
-        "standard",
-        "comprehensive",
-    ]
+    depth: ResearchDepth
 
-    status: Literal[
-        "queued",
-        "processing",
-        "completed",
-        "failed",
-    ]
+    status: TaskStatus=TaskStatus.QUEUED
 
     progress: int = Field(
         default=0,

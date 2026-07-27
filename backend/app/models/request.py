@@ -1,6 +1,6 @@
-from typing import Literal
-
 from pydantic import BaseModel, Field
+
+from backend.app.models.enums import ResearchDepth
 
 
 class ResearchRequest(BaseModel):
@@ -8,4 +8,7 @@ class ResearchRequest(BaseModel):
         ..., min_length=3, max_length=250, description="The topic of research"
     )
 
-    depth: Literal["quick", "standard", "comprehensive"] = "standard"
+    depth: ResearchDepth = Field(
+        default=ResearchDepth.STANDARD,
+        description="Desired depth of the research.",
+    )
