@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.database.models import ResearchTaskORM
-from backend.app.models.enums import TaskStatus
+from backend.app.models.enums import TaskStage, TaskStatus
 
 
 class ResearchRepository:
@@ -59,6 +59,7 @@ class ResearchRepository:
         return await self.update(
             research_id,
             status=TaskStatus.FAILED,
+            stage=TaskStage.FAILED,
             error=error,
             completed_at=datetime.now(UTC),
         )

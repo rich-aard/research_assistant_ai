@@ -5,7 +5,7 @@ from backend.app.core.logging import get_logger
 from backend.app.database.mappers import model_to_orm, orm_to_model
 from backend.app.database.session import async_session_factory
 from backend.app.graph import build_graph
-from backend.app.models.enums import TaskStatus
+from backend.app.models.enums import TaskStage, TaskStatus
 from backend.app.models.request import ResearchRequest
 from backend.app.models.state import ResearchState
 from backend.app.models.task import ResearchTask
@@ -31,6 +31,7 @@ class ResearchService:
             topic=request.topic,
             depth=request.depth,
             status=TaskStatus.QUEUED,
+            stage=TaskStage.QUEUED,
             progress=0,
             created_at=datetime.now(UTC),
         )
@@ -77,6 +78,7 @@ class ResearchService:
             await repo.update(
                 research_id,
                 status=TaskStatus.PROCESSING,
+                stage=TaskStage.PLANNING,
                 progress=5,
             )
         # Build initial state
@@ -84,7 +86,7 @@ class ResearchService:
             "research_id": research_id,
             "topic": task.topic,
             "depth": task.depth,
-            "status": "processing",
+            "status": TaskStatus.PROCESSING,
             "progress": 5,
             "created_at": task.created_at,
         }
@@ -94,11 +96,19 @@ class ResearchService:
                 research_id,
             )
             final_state = await self.graph.ainvoke(state)
+
             async with async_session_factory() as session:
                 repo = ResearchRepository(session)
+
+                await repo.update(
+                    research_id,
+                    stage=TaskStage.FINALIZING,
+                )
+
                 await repo.update(
                     research_id,
                     status=TaskStatus.COMPLETED,
+                    stage=TaskStage.COMPLETED,
                     summary=final_state.get("summary", ""),
                     report=final_state.get("report", ""),
                     progress=100,
@@ -116,7 +126,7 @@ class ResearchService:
                     str(exc),
                 )
             logger.exception(
-                "Research task %d failed: %s",
+                "Research task %s failed: %s",
                 research_id,
                 exc,
             )

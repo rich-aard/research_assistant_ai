@@ -3,20 +3,22 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from backend.app.models.enums import ResearchDepth, TaskStatus
+from backend.app.models.enums import ResearchDepth, TaskStage, TaskStatus
 
 
 class ResearchTask(BaseModel):
     """
     In-memory representation of a research task.
     """
+
     research_id: UUID
 
     topic: str
 
     depth: ResearchDepth
 
-    status: TaskStatus=TaskStatus.QUEUED
+    status: TaskStatus = TaskStatus.QUEUED
+    stage: TaskStage = TaskStage.QUEUED
 
     progress: int = Field(
         default=0,

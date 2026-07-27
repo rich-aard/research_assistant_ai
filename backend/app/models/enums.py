@@ -15,7 +15,7 @@ class TaskStatus(StrEnum):
 class TaskStage(StrEnum):
     """
     Fine-grained execution stage.
-    Used only for progress reporting and logging.
+    Used for progress reporting.
     """
 
     QUEUED = "queued"
@@ -24,8 +24,9 @@ class TaskStage(StrEnum):
     WEB_SEARCH = "web_search"
     ARXIV_SEARCH = "arxiv_search"
     MERGING = "merging"
-    WRITING = "writing"
+    WRITING_REPORT = "writing_report"
     SUMMARIZING = "summarizing"
+    FINALIZING = "finalizing"
     COMPLETED = "completed"
     FAILED = "failed"
 

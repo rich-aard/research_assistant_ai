@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
 
 from backend.app.database.base import Base
-from backend.app.models.enums import ResearchDepth, TaskStatus
+from backend.app.models.enums import ResearchDepth, TaskStage, TaskStatus
 
 
 class ResearchTaskORM(Base):
@@ -31,6 +31,12 @@ class ResearchTaskORM(Base):
         SAEnum(TaskStatus, name="task_status"),
         nullable=False,
         default=TaskStatus.QUEUED,
+    )
+
+    stage: Mapped[TaskStage] = mapped_column(
+        SAEnum(TaskStage, name="task_stage"),
+        nullable=False,
+        default=TaskStage.QUEUED,
     )
 
     progress: Mapped[int] = mapped_column(
@@ -61,5 +67,6 @@ class ResearchTaskORM(Base):
             f"ResearchTaskORM("
             f"research_id={self.research_id}, "
             f"status={self.status}, "
+            f"stage={self.stage}"
             f"progress={self.progress})"
         )
