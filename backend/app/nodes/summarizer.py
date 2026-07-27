@@ -40,6 +40,4 @@ async def summarizer_node(state: ResearchState) -> ResearchState:
 
     return {
         "summary": summary,
-        "status": "completed",
-        "progress": 100,
     }

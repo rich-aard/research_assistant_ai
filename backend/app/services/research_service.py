@@ -5,6 +5,10 @@ from backend.app.core.logging import get_logger
 from backend.app.database.mappers import model_to_orm, orm_to_model
 from backend.app.database.session import async_session_factory
 from backend.app.graph import build_graph
+from backend.app.graph.tracking import (
+    NODE_TO_PROGRESS,
+    NODE_TO_STAGE,
+)
 from backend.app.models.enums import TaskStage, TaskStatus
 from backend.app.models.request import ResearchRequest
 from backend.app.models.state import ResearchState
@@ -86,8 +90,6 @@ class ResearchService:
             "research_id": research_id,
             "topic": task.topic,
             "depth": task.depth,
-            "status": TaskStatus.PROCESSING,
-            "progress": 5,
             "created_at": task.created_at,
         }
         try:
@@ -95,7 +97,24 @@ class ResearchService:
                 "Research task %s is processing",
                 research_id,
             )
-            final_state = await self.graph.ainvoke(state)
+            final_state = state.copy()
+
+            async for event in self.graph.astream(
+                state,
+                stream_mode="updates",
+            ):
+                for node_name, node_output in event.items():
+                    final_state.update(node_output)
+
+                    if node_name in NODE_TO_STAGE:
+                        async with async_session_factory() as session:
+                            repo = ResearchRepository(session)
+
+                            await repo.update(
+                                research_id,
+                                stage=NODE_TO_STAGE[node_name],
+                                progress=NODE_TO_PROGRESS[node_name],
+                            )
 
             async with async_session_factory() as session:
                 repo = ResearchRepository(session)
@@ -103,6 +122,7 @@ class ResearchService:
                 await repo.update(
                     research_id,
                     stage=TaskStage.FINALIZING,
+                    progress=98,
                 )
 
                 await repo.update(

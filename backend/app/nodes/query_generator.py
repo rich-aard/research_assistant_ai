@@ -14,7 +14,7 @@ query_generator_chain = query_generator_prompt | structured_llm
 
 async def query_generator_node(
     state: ResearchState,
-) -> dict:
+) -> ResearchState:
     """
     Generate optimized search queries for web and academic search.
     """
@@ -53,8 +53,6 @@ async def query_generator_node(
         return {
             "web_queries": output.web_queries,
             "arxiv_queries": output.arxiv_queries,
-            "status": "planning",
-            "progress": 20,
         }
 
     except Exception:
@@ -67,6 +65,4 @@ async def query_generator_node(
         return {
             "web_queries": research_plan,
             "arxiv_queries": research_plan,
-            "status": "planning",
-            "progress": 20,
         }

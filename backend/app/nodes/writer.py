@@ -104,6 +104,5 @@ async def writer_node(state: ResearchState) -> ResearchState:
     return {
         "report": report,
         "summary": "",
-        "status": "writing",
-        "progress": 90,
+        
     }
