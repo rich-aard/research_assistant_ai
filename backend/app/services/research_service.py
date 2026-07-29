@@ -90,7 +90,7 @@ class ResearchService:
             await publisher.publish(
                 research_id,
                 {
-                    "type": "progress",
+                    "event": "progress",
                     "data": {
                         "status": TaskStatus.PROCESSING,
                         "stage": TaskStage.PLANNING,
@@ -132,7 +132,7 @@ class ResearchService:
                             await publisher.publish(
                                 research_id,
                                 {
-                                    "type": "progress",
+                                    "event": "progress",
                                     "data": {
                                         "status": TaskStatus.PROCESSING,
                                         "stage": NODE_TO_STAGE[node_name],
@@ -153,7 +153,7 @@ class ResearchService:
                 await publisher.publish(
                     research_id,
                     {
-                        "type": "progress",
+                        "event": "progress",
                         "data": {
                             "status": TaskStatus.PROCESSING,
                             "stage": TaskStage.FINALIZING,
@@ -175,7 +175,7 @@ class ResearchService:
                 await publisher.publish(
                     research_id,
                     {
-                        "type": "completed",
+                        "event": "completed",
                         "data": {
                             "status": TaskStatus.COMPLETED,
                             "stage": TaskStage.COMPLETED,
@@ -200,7 +200,7 @@ class ResearchService:
                 await publisher.publish(
                     research_id,
                     {
-                        "type": "failed",
+                        "event": "failed",
                         "data": {
                             "status": TaskStatus.FAILED,
                             "stage": TaskStage.FAILED,

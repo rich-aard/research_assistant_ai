@@ -1,7 +1,12 @@
+import asyncio
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from sse_starlette.sse import EventSourceResponse
+from starlette.requests import Request
 
+from backend.app.core.logging import get_logger
+from backend.app.events import publisher
 from backend.app.models.request import ResearchRequest
 from backend.app.models.response import (
     ResearchResultResponse,
@@ -9,6 +14,7 @@ from backend.app.models.response import (
 )
 from backend.app.services import ResearchService
 
+logger = get_logger(__name__)
 router = APIRouter(
     prefix="/research",
     tags=["Research"],
@@ -55,3 +61,56 @@ async def get_research(research_id: UUID) -> ResearchResultResponse:
         )
 
     return task
+
+
+@router.get("/{research_id}/stream")
+async def stream_research(
+    research_id: UUID,
+    request: Request,
+):
+    """
+    Stream live research progress using Server-Sent Events (SSE).
+    """
+    logger.debug("SSE client connected for %s", research_id)
+    queue = publisher.subscribe(research_id)
+
+    task = await research_service.get_research(research_id)
+
+    if task is None:
+        publisher.unsubscribe(research_id, queue)
+        raise HTTPException(
+            status_code=404,
+            detail="Research task not found.",
+        )
+
+    async def event_generator():
+        try:
+            yield {
+                "event": "progress",
+                "data": {
+                    "status": task.status,
+                    "stage": task.stage,
+                    "progress": task.progress,
+                },
+            }
+            while True:
+                if await request.is_disconnected():
+                    break
+
+                event = await queue.get()
+
+                if event is None:
+                    break
+                logger.debug("Sending SSE event %s", event["type"])
+                yield event
+
+        except asyncio.CancelledError:
+            pass
+
+        finally:
+            publisher.unsubscribe(research_id, queue)
+
+    return EventSourceResponse(
+        event_generator(),
+        ping=15,
+    )
