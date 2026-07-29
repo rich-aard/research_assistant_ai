@@ -35,6 +35,7 @@ async def start_research(
     return ResearchStartResponse(
         research_id=task.research_id,
         status=task.status,
+        stage=task.stage,
         progress=task.progress,
         message=f"Research started for '{task.topic}'.",
     )
