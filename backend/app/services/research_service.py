@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from backend.app.core.logging import get_logger
 from backend.app.database.mappers import model_to_orm, orm_to_model
 from backend.app.database.session import async_session_factory
+from backend.app.events import publisher
 from backend.app.graph import build_graph
 from backend.app.graph.tracking import (
     NODE_TO_PROGRESS,
@@ -85,6 +86,18 @@ class ResearchService:
                 stage=TaskStage.PLANNING,
                 progress=5,
             )
+
+            await publisher.publish(
+                research_id,
+                {
+                    "type": "progress",
+                    "data": {
+                        "status": TaskStatus.PROCESSING,
+                        "stage": TaskStage.PLANNING,
+                        "progress": 5,
+                    },
+                },
+            )
         # Build initial state
         state: ResearchState = {
             "research_id": research_id,
@@ -116,6 +129,18 @@ class ResearchService:
                                 progress=NODE_TO_PROGRESS[node_name],
                             )
 
+                            await publisher.publish(
+                                research_id,
+                                {
+                                    "type": "progress",
+                                    "data": {
+                                        "status": TaskStatus.PROCESSING,
+                                        "stage": NODE_TO_STAGE[node_name],
+                                        "progress": NODE_TO_PROGRESS[node_name],
+                                    },
+                                },
+                            )
+
             async with async_session_factory() as session:
                 repo = ResearchRepository(session)
 
@@ -123,6 +148,18 @@ class ResearchService:
                     research_id,
                     stage=TaskStage.FINALIZING,
                     progress=98,
+                )
+
+                await publisher.publish(
+                    research_id,
+                    {
+                        "type": "progress",
+                        "data": {
+                            "status": TaskStatus.PROCESSING,
+                            "stage": TaskStage.FINALIZING,
+                            "progress": 98,
+                        },
+                    },
                 )
 
                 await repo.update(
@@ -133,6 +170,20 @@ class ResearchService:
                     report=final_state.get("report", ""),
                     progress=100,
                     completed_at=datetime.now(UTC),
+                )
+
+                await publisher.publish(
+                    research_id,
+                    {
+                        "type": "completed",
+                        "data": {
+                            "status": TaskStatus.COMPLETED,
+                            "stage": TaskStage.COMPLETED,
+                            "progress": 100,
+                            "summary": final_state.get("summary", ""),
+                            "report": final_state.get("report", ""),
+                        },
+                    },
                 )
             logger.info(
                 "Research task %s completed",
@@ -145,8 +196,23 @@ class ResearchService:
                     research_id,
                     str(exc),
                 )
+
+                await publisher.publish(
+                    research_id,
+                    {
+                        "type": "failed",
+                        "data": {
+                            "status": TaskStatus.FAILED,
+                            "stage": TaskStage.FAILED,
+                            "error": str(exc),
+                        },
+                    },
+                )
             logger.exception(
                 "Research task %s failed: %s",
                 research_id,
                 exc,
             )
+
+        finally:
+            await publisher.shutdown(research_id)
