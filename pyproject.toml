@@ -39,14 +39,17 @@ dependencies = [
     "aiosqlite>=0.22.1",
     "asyncpg>=0.31.0",
     "psycopg[binary]>=3.3.4",
-    "sse-starlette>=3.4.6",
+    #streaming
+    "sse-starlette>=3.4.6", 
 ]
 
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.2",
-    "pytest-asyncio>=1.2.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-mock>=3.15.1",
+    "asgi-lifespan>=2.1.0",
     "ruff>=0.12.11",
     "black>=25.1.0",
     "mypy>=1.18.2",
