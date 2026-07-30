@@ -1,11 +1,13 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from backend.app.api import health_router, research_router
 from backend.app.core.config import DATABASE_PATH, settings
+from backend.app.core.exceptions import ResearchNotFoundError
 from backend.app.core.logging import get_logger, setup_logging
 
 
@@ -52,3 +54,14 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(research_router)
+
+
+@app.exception_handler(ResearchNotFoundError)
+async def research_not_found_handler(
+    request: Request,
+    exc: ResearchNotFoundError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content={"detail": str(exc)},
+    )

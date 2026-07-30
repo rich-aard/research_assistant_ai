@@ -1,7 +1,7 @@
 import asyncio
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks
 from sse_starlette.sse import EventSourceResponse
 from starlette.requests import Request
 
@@ -52,15 +52,10 @@ async def start_research(
     "/{research_id}",
     response_model=ResearchResultResponse,
 )
-async def get_research(research_id: UUID) -> ResearchResultResponse:
+async def get_research(
+    research_id: UUID,
+) -> ResearchResultResponse:
     task = await research_service.get_research(research_id)
-
-    if task is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Research task not found.",
-        )
-
     return task
 
 
@@ -74,17 +69,9 @@ async def stream_research(
     """
     logger.debug("SSE client connected for %s", research_id)
 
-
     task = await research_service.get_research(research_id)
-
-    if task is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Research task not found.",
-        )
-
     queue = publisher.subscribe(research_id)
-    
+
     async def event_generator():
         try:
             yield {

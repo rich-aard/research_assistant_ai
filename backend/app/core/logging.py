@@ -3,6 +3,7 @@ from logging.handlers import RotatingFileHandler
 
 from backend.app.core.config import settings
 
+logger = logging.getLogger(__name__)
 LOG_DIR = settings.base_dir / "logs"
 LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -15,7 +16,7 @@ def _get_log_level() -> int:
     level = getattr(logging, settings.log_level, None)
 
     if not isinstance(level, int):
-        logging.warning(
+        logger.warning(
             "Invalid LOG_LEVEL '%s', falling back to INFO.",
             settings.log_level,
         )

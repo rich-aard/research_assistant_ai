@@ -7,6 +7,7 @@ import pytest
 from httpx import AsyncClient
 
 from backend.app.api.routes.research import stream_research
+from backend.app.core.exceptions import ResearchNotFoundError
 from backend.app.events.publisher import EventPublisher
 from backend.app.models.enums import (
     ResearchDepth,
@@ -20,6 +21,7 @@ from backend.app.models.task import ResearchTask
 async def test_start_research(client: AsyncClient, mocker):
     research_id = uuid4()
     depth = ResearchDepth.QUICK
+
     mock_task = ResearchTask(
         research_id=research_id,
         topic="Artificial Intelligence",
@@ -32,11 +34,12 @@ async def test_start_research(client: AsyncClient, mocker):
 
     mock_start = mocker.patch(
         "backend.app.api.routes.research.research_service.start_research",
-        return_value=mock_task,
+        new=AsyncMock(return_value=mock_task),
     )
 
     mock_execute = mocker.patch(
         "backend.app.api.routes.research.research_service.execute_research",
+        new=AsyncMock(),
     )
 
     response = await client.post(
@@ -52,10 +55,10 @@ async def test_start_research(client: AsyncClient, mocker):
     data = response.json()
 
     assert data["research_id"] == str(research_id)
-    assert data["status"] == "queued"
-    assert data["stage"] == "queued"
+    assert data["status"] == TaskStatus.QUEUED.value
+    assert data["stage"] == TaskStage.QUEUED.value
     assert data["progress"] == 0
-    assert data["message"] == "Research started for 'Artificial Intelligence'."
+    assert data["message"] == ("Research started for 'Artificial Intelligence'.")
 
     mock_start.assert_awaited_once()
     mock_execute.assert_awaited_once_with(research_id)
@@ -68,6 +71,7 @@ async def test_start_research_validation_error(
 ):
     mock_start = mocker.patch(
         "backend.app.api.routes.research.research_service.start_research",
+        new=AsyncMock(),
     )
 
     response = await client.post(
@@ -80,7 +84,7 @@ async def test_start_research_validation_error(
 
     assert response.status_code == 422
 
-    mock_start.assert_not_called()
+    mock_start.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -104,7 +108,7 @@ async def test_get_research(
 
     mock_get = mocker.patch(
         "backend.app.api.routes.research.research_service.get_research",
-        return_value=mock_task,
+        new=AsyncMock(return_value=mock_task),
     )
 
     response = await client.get(f"/research/{research_id}")
@@ -133,14 +137,16 @@ async def test_get_research_not_found(
 
     mock_get = mocker.patch(
         "backend.app.api.routes.research.research_service.get_research",
-        return_value=None,
+        new=AsyncMock(
+            side_effect=ResearchNotFoundError(research_id),
+        ),
     )
 
     response = await client.get(f"/research/{research_id}")
 
     assert response.status_code == 404
     assert response.json() == {
-        "detail": "Research task not found.",
+        "detail": f"Research task '{research_id}' was not found.",
     }
 
     mock_get.assert_awaited_once_with(research_id)
@@ -155,7 +161,9 @@ async def test_stream_research_not_found(
 
     mock_get = mocker.patch(
         "backend.app.api.routes.research.research_service.get_research",
-        return_value=None,
+        new=AsyncMock(
+            side_effect=ResearchNotFoundError(research_id),
+        ),
     )
 
     response = await client.get(
@@ -164,7 +172,7 @@ async def test_stream_research_not_found(
 
     assert response.status_code == 404
     assert response.json() == {
-        "detail": "Research task not found.",
+        "detail": f"Research task '{research_id}' was not found.",
     }
 
     mock_get.assert_awaited_once_with(research_id)
@@ -267,7 +275,7 @@ async def test_stream_research_disconnects(mocker):
 
     mocker.patch(
         "backend.app.api.routes.research.research_service.get_research",
-        return_value=task,
+        new=AsyncMock(return_value=task),
     )
 
     mocker.patch(
@@ -291,7 +299,6 @@ async def test_stream_research_disconnects(mocker):
         events.append(event)
 
     assert events
-
     assert research_id not in test_publisher._subscribers
 
 
@@ -312,7 +319,7 @@ async def test_stream_research_stops_on_shutdown(mocker):
 
     mocker.patch(
         "backend.app.api.routes.research.research_service.get_research",
-        return_value=task,
+        new=AsyncMock(return_value=task),
     )
 
     mocker.patch(
@@ -349,5 +356,4 @@ async def test_stream_research_stops_on_shutdown(mocker):
         events.append(event)
 
     assert events
-
     assert research_id not in test_publisher._subscribers

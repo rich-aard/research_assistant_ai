@@ -1,5 +1,4 @@
 import logging
-
 from logging.handlers import RotatingFileHandler
 
 import backend.app.core.logging as app_logging

@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from backend.app.core.exceptions import ResearchNotFoundError
 from backend.app.core.logging import get_logger
 from backend.app.database.mappers import model_to_orm, orm_to_model
 from backend.app.database.session import async_session_factory
@@ -48,14 +49,17 @@ class ResearchService:
 
         return orm_to_model(orm_task)
 
-    async def get_research(self, research_id: UUID) -> ResearchTask | None:
+    async def get_research(
+        self,
+        research_id: UUID,
+    ) -> ResearchTask:
         """Fetch research task status"""
         async with async_session_factory() as session:
             repo = ResearchRepository(session)
             task = await repo.get(research_id)
 
         if task is None:
-            return None
+            raise ResearchNotFoundError(research_id)
 
         return orm_to_model(task)
 
@@ -209,9 +213,9 @@ class ResearchService:
                     },
                 )
             logger.exception(
-                "Research task %s failed: %s",
+                "Research task %s failed.",
                 research_id,
-                exc,
+              
             )
 
         finally:

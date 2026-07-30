@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from backend.app.core.exceptions import ResearchNotFoundError
 from backend.app.events import publisher
 from backend.app.models.enums import (
     ResearchDepth,
@@ -59,7 +60,7 @@ async def test_get_research(mocker):
         created_at=datetime.now(UTC),
     )
 
-    mocker.patch(
+    mock_get = mocker.patch(
         "backend.app.repositories.research_repository.ResearchRepository.get",
         return_value=task,
     )
@@ -67,6 +68,7 @@ async def test_get_research(mocker):
     result = await service.get_research(research_id)
 
     assert result == task
+    mock_get.assert_awaited_once_with(research_id)
 
 
 @pytest.mark.asyncio
@@ -75,14 +77,19 @@ async def test_get_research_not_found(mocker):
 
     research_id = uuid4()
 
-    mocker.patch(
+    mock_get = mocker.patch(
         "backend.app.repositories.research_repository.ResearchRepository.get",
         return_value=None,
     )
 
-    result = await service.get_research(research_id)
+    with pytest.raises(ResearchNotFoundError) as exc_info:
+        await service.get_research(research_id)
 
-    assert result is None
+    assert str(exc_info.value) == (
+        f"Research task '{research_id}' was not found."
+    )
+
+    mock_get.assert_awaited_once_with(research_id)
 
 
 @pytest.mark.asyncio
@@ -145,9 +152,7 @@ async def test_execute_research_success(mocker):
     mock_get.assert_awaited_once()
 
     assert mock_update.await_count >= 2
-
     mock_publish.assert_awaited()
-
     mock_shutdown.assert_awaited_once_with(research_id)
 
     completed_call = next(
@@ -292,29 +297,12 @@ async def test_execute_research_failure(mocker):
     )
 
     mock_publish.assert_awaited()
-
     mock_shutdown.assert_awaited_once_with(research_id)
 
-    # Last published event should be the failure event
+    # Last published event should be the failure event.
     _, event = mock_publish.await_args_list[-1].args
 
     assert event["event"] == "failed"
     assert event["data"]["status"] == TaskStatus.FAILED
     assert event["data"]["stage"] == TaskStage.FAILED
     assert event["data"]["error"] == "Graph failed"
-
-
-@pytest.mark.asyncio
-async def test_execute_research_not_found(mocker):
-    service = ResearchService()
-
-    research_id = uuid4()
-
-    mock_get = mocker.patch(
-        "backend.app.repositories.research_repository.ResearchRepository.get",
-        return_value=None,
-    )
-
-    await service.execute_research(research_id)
-
-    mock_get.assert_awaited_once_with(research_id)

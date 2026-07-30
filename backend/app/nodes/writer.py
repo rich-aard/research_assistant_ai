@@ -34,6 +34,7 @@ def _format_documents(results: list[SearchResult], limit: int = 5) -> str:
 
     return "\n\n".join(formatted)
 
+
 def _format_sources(results: list[SearchResult], limit: int = 5) -> str:
     """
     Format source references for citation in the report.
@@ -44,16 +45,16 @@ def _format_sources(results: list[SearchResult], limit: int = 5) -> str:
     sources: list[str] = []
 
     for index, result in enumerate(results[:limit], start=1):
-        sources.append("\n".join(
-        [
-            f"[{index}] {result.title}",
-            str(result.url),
-        ]
+        sources.append(
+            "\n".join(
+                [
+                    f"[{index}] {result.title}",
+                    str(result.url),
+                ]
+            )
         )
-    )
 
     return "\n\n".join(sources)
-
 
 
 async def writer_node(state: ResearchState) -> ResearchState:
@@ -89,11 +90,10 @@ async def writer_node(state: ResearchState) -> ResearchState:
             topic,
         )
 
-    except Exception as exc:
+    except Exception:
         logger.exception(
-            "Failed to generate report for '%s': %s",
+            "Failed to generate report for '%s'.",
             topic,
-            exc,
         )
 
         report = (
@@ -104,5 +104,4 @@ async def writer_node(state: ResearchState) -> ResearchState:
     return {
         "report": report,
         "summary": "",
-        
     }

@@ -42,11 +42,11 @@ async def planner_node(state: ResearchState) -> ResearchState:
             topic,
         )
 
-    except Exception as exc:
+    except Exception:
         logger.exception(
-            "Failed to generate research plan for '%s': %s",
+            "Failed to generate research plan for '%s.",
             topic,
-            exc,
+            
         )
 
         plan = [
