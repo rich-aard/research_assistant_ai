@@ -1,8 +1,8 @@
 import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy import JSON, Integer, String, Text, Uuid
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
 
@@ -48,6 +48,12 @@ class ResearchTaskORM(Base):
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     report: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    sources: Mapped[list[dict[str, object]]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+    )
 
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 

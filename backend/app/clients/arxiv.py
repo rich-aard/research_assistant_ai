@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+import arxiv
 from arxiv import Client, Search, SortCriterion
 
 from backend.app.core.logging import get_logger
@@ -13,7 +14,11 @@ def get_arxiv_client() -> Client:
     """
     Return a cached arXiv client.
     """
-    return Client()
+    return Client(
+        page_size=5,
+        delay_seconds=3.0,
+        num_retries=3,
+    )
 
 
 def search_arxiv(
@@ -39,25 +44,34 @@ def search_arxiv(
 
     try:
         papers = client.results(search)
+
+        results: list[SearchResult] = []
+
+        for paper in papers:
+            results.append(
+                SearchResult(
+                    title=paper.title,
+                    url=paper.entry_id,
+                    content=paper.summary,
+                    snippet=paper.summary,
+                    source="arxiv",
+                )
+            )
+
+    except arxiv.HTTPError as exc:
+        logger.warning(
+            "arXiv request failed for '%s': %s",
+            query,
+            exc,
+        )
+        return []
+
     except Exception:
         logger.exception(
             "arXiv search failed for '%s'",
             query,
         )
         raise
-
-    results: list[SearchResult] = []
-
-    for paper in papers:
-        results.append(
-            SearchResult(
-                title=paper.title,
-                url=paper.entry_id,
-                content=paper.summary,
-                snippet=paper.summary,
-                source="arxiv",
-            )
-        )
 
     logger.info(
         "Retrieved %d arXiv paper(s) for '%s'",

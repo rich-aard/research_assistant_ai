@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from backend.app.models.enums import ResearchDepth, TaskStage, TaskStatus
+from backend.app.models.search import SearchResult
 
 
 class ResearchTask(BaseModel):
@@ -30,6 +31,10 @@ class ResearchTask(BaseModel):
 
     report: str | None = None
 
+    sources: list[SearchResult] = Field(
+        default_factory=list,
+        description="Documents retrieved during research.",
+    )
     error: str | None = None
 
     created_at: datetime

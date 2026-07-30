@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from backend.app.models.enums import TaskStage, TaskStatus
+from backend.app.models.search import SearchResult
 
 
 class ResearchStartResponse(BaseModel):
@@ -49,6 +50,10 @@ class ResearchResultResponse(BaseModel):
     report: str | None = Field(
         default=None,
         description="Full research report in Markdown format.",
+    )
+    sources: list[SearchResult] = Field(
+        default_factory=list,
+        description="Documents retrieved during research.",
     )
     status: TaskStatus = Field(
         description="Current lifecycle status of the research task.",

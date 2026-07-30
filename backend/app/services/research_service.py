@@ -172,6 +172,13 @@ class ResearchService:
                     stage=TaskStage.COMPLETED,
                     summary=final_state.get("summary", ""),
                     report=final_state.get("report", ""),
+                    sources=[
+                        source.model_dump(mode="json")
+                        for source in [
+                            *final_state.get("web_results", []),
+                            *final_state.get("arxiv_results", []),
+                        ]
+                    ],
                     progress=100,
                     completed_at=datetime.now(UTC),
                 )
@@ -215,7 +222,6 @@ class ResearchService:
             logger.exception(
                 "Research task %s failed.",
                 research_id,
-              
             )
 
         finally:

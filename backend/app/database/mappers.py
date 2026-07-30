@@ -1,4 +1,5 @@
 from backend.app.database.models import ResearchTaskORM
+from backend.app.models.search import SearchResult
 from backend.app.models.task import ResearchTask
 
 
@@ -13,6 +14,7 @@ def orm_to_model(task: ResearchTaskORM) -> ResearchTask:
         progress=task.progress,
         summary=task.summary,
         report=task.report,
+        sources=[SearchResult.model_validate(source) for source in task.sources],
         error=task.error,
         created_at=task.created_at,
         completed_at=task.completed_at,
@@ -30,6 +32,7 @@ def model_to_orm(task: ResearchTask) -> ResearchTaskORM:
         progress=task.progress,
         summary=task.summary,
         report=task.report,
+        sources=[source.model_dump(mode="json") for source in task.sources],
         error=task.error,
         created_at=task.created_at,
         completed_at=task.completed_at,
