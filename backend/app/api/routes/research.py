@@ -26,6 +26,7 @@ research_service = ResearchService()
 @router.post(
     "",
     response_model=ResearchStartResponse,
+    status_code=202,
 )
 async def start_research(
     request: ResearchRequest,
@@ -67,22 +68,23 @@ async def get_research(research_id: UUID) -> ResearchResultResponse:
 async def stream_research(
     research_id: UUID,
     request: Request,
-):
+) -> EventSourceResponse:
     """
     Stream live research progress using Server-Sent Events (SSE).
     """
     logger.debug("SSE client connected for %s", research_id)
-    queue = publisher.subscribe(research_id)
+
 
     task = await research_service.get_research(research_id)
 
     if task is None:
-        publisher.unsubscribe(research_id, queue)
         raise HTTPException(
             status_code=404,
             detail="Research task not found.",
         )
 
+    queue = publisher.subscribe(research_id)
+    
     async def event_generator():
         try:
             yield {
@@ -101,7 +103,7 @@ async def stream_research(
 
                 if event is None:
                     break
-                logger.debug("Sending SSE event %s", event["type"])
+                logger.debug("Sending SSE event %s", event["event"])
                 yield event
 
         except asyncio.CancelledError:

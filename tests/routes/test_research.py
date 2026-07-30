@@ -47,7 +47,7 @@ async def test_start_research(client: AsyncClient, mocker):
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 202
 
     data = response.json()
 
@@ -193,7 +193,7 @@ async def test_stream_research_success(mocker):
 
     mock_queue.put_nowait(
         {
-            "type": "progress",
+            "event": "progress",
             "data": {
                 "status": TaskStatus.PROCESSING,
                 "stage": TaskStage.PLANNING,
@@ -236,7 +236,7 @@ async def test_stream_research_success(mocker):
     }
 
     assert events[1] == {
-        "type": "progress",
+        "event": "progress",
         "data": {
             "status": TaskStatus.PROCESSING,
             "stage": TaskStage.PLANNING,
@@ -332,7 +332,16 @@ async def test_stream_research_stops_on_shutdown(mocker):
 
     queue = test_publisher._subscribers[research_id][0]
 
-    await queue.put(None)
+    await queue.put(
+        {
+            "event": "progress",
+            "data": {
+                "status": TaskStatus.PROCESSING,
+                "stage": TaskStage.PLANNING,
+                "progress": 10,
+            },
+        }
+    )
 
     events = []
 
