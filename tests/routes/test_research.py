@@ -1,9 +1,12 @@
+import asyncio
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
 
+from backend.app.api.routes.research import stream_research
 from backend.app.models.enums import (
     ResearchDepth,
     TaskStage,
@@ -164,3 +167,83 @@ async def test_stream_research_not_found(
     }
 
     mock_get.assert_awaited_once_with(research_id)
+
+
+@pytest.mark.asyncio
+async def test_stream_research_success(mocker):
+    research_id = uuid4()
+
+    mock_task = ResearchTask(
+        research_id=research_id,
+        topic="Artificial Intelligence",
+        depth=ResearchDepth.QUICK,
+        status=TaskStatus.PROCESSING,
+        stage=TaskStage.PLANNING,
+        progress=10,
+        created_at=datetime.now(UTC),
+    )
+
+    mocker.patch(
+        "backend.app.api.routes.research.research_service.get_research",
+        new=AsyncMock(return_value=mock_task),
+    )
+
+    mock_queue = asyncio.Queue()
+
+    mock_queue.put_nowait(
+        {
+            "type": "progress",
+            "data": {
+                "status": TaskStatus.PROCESSING,
+                "stage": TaskStage.PLANNING,
+                "progress": 20,
+            },
+        }
+    )
+
+    mock_queue.put_nowait(None)
+
+    mocker.patch(
+        "backend.app.api.routes.research.publisher.subscribe",
+        return_value=mock_queue,
+    )
+
+    mock_unsubscribe = mocker.patch(
+        "backend.app.api.routes.research.publisher.unsubscribe",
+    )
+
+    request = Mock()
+    request.is_disconnected = AsyncMock(return_value=False)
+
+    response = await stream_research(
+        research_id,
+        request,
+    )
+
+    events = []
+
+    async for event in response.body_iterator:
+        events.append(event)
+
+    assert events[0] == {
+        "event": "progress",
+        "data": {
+            "status": mock_task.status,
+            "stage": mock_task.stage,
+            "progress": mock_task.progress,
+        },
+    }
+
+    assert events[1] == {
+        "type": "progress",
+        "data": {
+            "status": TaskStatus.PROCESSING,
+            "stage": TaskStage.PLANNING,
+            "progress": 20,
+        },
+    }
+
+    mock_unsubscribe.assert_called_once_with(
+        research_id,
+        mock_queue,
+    )
