@@ -163,6 +163,76 @@ async def test_execute_research_success(mocker):
 
 
 @pytest.mark.asyncio
+async def test_execute_research_ignores_untracked_node(mocker):
+    service = ResearchService()
+
+    research_id = uuid4()
+
+    task = ResearchTask(
+        research_id=research_id,
+        topic="Artificial Intelligence",
+        depth=ResearchDepth.STANDARD,
+        status=TaskStatus.QUEUED,
+        stage=TaskStage.QUEUED,
+        progress=0,
+        created_at=datetime.now(UTC),
+    )
+
+    mocker.patch(
+        "backend.app.repositories.research_repository.ResearchRepository.get",
+        return_value=task,
+    )
+
+    mock_update = mocker.patch(
+        "backend.app.repositories.research_repository.ResearchRepository.update",
+    )
+
+    mocker.patch.object(
+        publisher,
+        "publish",
+    )
+
+    mock_shutdown = mocker.patch.object(
+        publisher,
+        "shutdown",
+    )
+
+    async def fake_astream(*args, **kwargs):
+        yield {
+            "unknown_node": {
+                "some_value": "some data",
+            }
+        }
+
+        yield {
+            "writer": {
+                "summary": "summary",
+                "report": "report",
+            }
+        }
+
+    mocker.patch.object(
+        service.graph,
+        "astream",
+        side_effect=fake_astream,
+    )
+
+    await service.execute_research(research_id)
+
+    mock_shutdown.assert_awaited_once_with(research_id)
+
+    completed_call = next(
+        call
+        for call in mock_update.await_args_list
+        if call.kwargs.get("status") == TaskStatus.COMPLETED
+    )
+
+    assert completed_call.kwargs["summary"] == "summary"
+    assert completed_call.kwargs["report"] == "report"
+    assert completed_call.kwargs["progress"] == 100
+
+
+@pytest.mark.asyncio
 async def test_execute_research_failure(mocker):
     service = ResearchService()
 
@@ -232,3 +302,19 @@ async def test_execute_research_failure(mocker):
     assert event["data"]["status"] == TaskStatus.FAILED
     assert event["data"]["stage"] == TaskStage.FAILED
     assert event["data"]["error"] == "Graph failed"
+
+
+@pytest.mark.asyncio
+async def test_execute_research_not_found(mocker):
+    service = ResearchService()
+
+    research_id = uuid4()
+
+    mock_get = mocker.patch(
+        "backend.app.repositories.research_repository.ResearchRepository.get",
+        return_value=None,
+    )
+
+    await service.execute_research(research_id)
+
+    mock_get.assert_awaited_once_with(research_id)

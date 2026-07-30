@@ -67,6 +67,6 @@ class ResearchTaskORM(Base):
             f"ResearchTaskORM("
             f"research_id={self.research_id}, "
             f"status={self.status}, "
-            f"stage={self.stage}"
+            f"stage={self.stage},"
             f"progress={self.progress})"
         )

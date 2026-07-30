@@ -7,6 +7,7 @@ import pytest
 from httpx import AsyncClient
 
 from backend.app.api.routes.research import stream_research
+from backend.app.events.publisher import EventPublisher
 from backend.app.models.enums import (
     ResearchDepth,
     TaskStage,
@@ -247,3 +248,97 @@ async def test_stream_research_success(mocker):
         research_id,
         mock_queue,
     )
+
+
+@pytest.mark.asyncio
+async def test_stream_research_disconnects(mocker):
+    test_publisher = EventPublisher()
+    research_id = uuid4()
+
+    task = ResearchTask(
+        research_id=research_id,
+        topic="AI",
+        depth=ResearchDepth.STANDARD,
+        status=TaskStatus.PROCESSING,
+        stage=TaskStage.PLANNING,
+        progress=5,
+        created_at=datetime.now(UTC),
+    )
+
+    mocker.patch(
+        "backend.app.api.routes.research.research_service.get_research",
+        return_value=task,
+    )
+
+    mocker.patch(
+        "backend.app.api.routes.research.publisher",
+        test_publisher,
+    )
+
+    request = Mock()
+    request.is_disconnected = AsyncMock(return_value=True)
+
+    response = await stream_research(
+        research_id,
+        request,
+    )
+
+    assert research_id in test_publisher._subscribers
+
+    events = []
+
+    async for event in response.body_iterator:
+        events.append(event)
+
+    assert events
+
+    assert research_id not in test_publisher._subscribers
+
+
+@pytest.mark.asyncio
+async def test_stream_research_stops_on_shutdown(mocker):
+    test_publisher = EventPublisher()
+    research_id = uuid4()
+
+    task = ResearchTask(
+        research_id=research_id,
+        topic="AI",
+        depth=ResearchDepth.STANDARD,
+        status=TaskStatus.PROCESSING,
+        stage=TaskStage.PLANNING,
+        progress=5,
+        created_at=datetime.now(UTC),
+    )
+
+    mocker.patch(
+        "backend.app.api.routes.research.research_service.get_research",
+        return_value=task,
+    )
+
+    mocker.patch(
+        "backend.app.api.routes.research.publisher",
+        test_publisher,
+    )
+
+    request = Mock()
+    request.is_disconnected = AsyncMock(return_value=False)
+
+    response = await stream_research(
+        research_id,
+        request,
+    )
+
+    assert research_id in test_publisher._subscribers
+
+    queue = test_publisher._subscribers[research_id][0]
+
+    await queue.put(None)
+
+    events = []
+
+    async for event in response.body_iterator:
+        events.append(event)
+
+    assert events
+
+    assert research_id not in test_publisher._subscribers

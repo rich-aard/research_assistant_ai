@@ -1,5 +1,7 @@
-import pytest
+from asyncio import Queue
 from uuid import uuid4
+
+import pytest
 
 from backend.app.events.publisher import EventPublisher
 
@@ -109,5 +111,39 @@ async def test_shutdown():
 
     assert await queue1.get() is None
     assert await queue2.get() is None
+
+    assert research_id not in publisher._subscribers
+
+
+def test_unsubscribe_ignores_unknown_queue():
+    publisher = EventPublisher()
+    research_id = uuid4()
+
+    registered_queue = publisher.subscribe(research_id)
+    unknown_queue = Queue()
+
+    publisher.unsubscribe(research_id, unknown_queue)
+
+    assert publisher._subscribers[research_id] == [registered_queue]
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_removes_empty_subscriber_list():
+    event_publisher = EventPublisher()
+    research_id = uuid4()
+
+    queue = event_publisher.subscribe(research_id)
+
+    event_publisher.unsubscribe(research_id, queue)
+
+    assert research_id not in event_publisher._subscribers
+
+
+def test_unsubscribe_unknown_research_id():
+    publisher = EventPublisher()
+    research_id = uuid4()
+    queue = Queue()
+
+    publisher.unsubscribe(research_id, queue)
 
     assert research_id not in publisher._subscribers
