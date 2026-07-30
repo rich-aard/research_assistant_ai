@@ -80,7 +80,7 @@ class EventPublisher:
         """
         logger.debug(
             "Publishing '%s' to %d subscriber(s) for %s",
-            event["type"],
+            event["event"],
             len(self._subscribers.get(research_id, [])),
             research_id,
         )
