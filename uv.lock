@@ -2790,6 +2790,7 @@ dependencies = [
     { name = "sentence-transformers" },
     { name = "sqlalchemy" },
     { name = "sse-starlette" },
+    { name = "sseclient" },
     { name = "streamlit" },
     { name = "tavily-python" },
     { name = "uvicorn", extra = ["standard"] },
@@ -2830,6 +2831,7 @@ requires-dist = [
     { name = "sentence-transformers", specifier = ">=5.1.0" },
     { name = "sqlalchemy", specifier = ">=2.0.51" },
     { name = "sse-starlette", specifier = ">=3.4.6" },
+    { name = "sseclient", specifier = ">=0.0.27" },
     { name = "streamlit", specifier = ">=1.49.0" },
     { name = "tavily-python", specifier = ">=0.7.11" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35.0" },
@@ -3212,6 +3214,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/6c/10/a34c656829ffc1c4b
 wheels = [
     { url = "https://files.pythonhosted.org/packages/49/36/e10c1d1b7ca881d2625db2ec28508578499187bb1c389952c398474e1834/sse_starlette-3.4.6-py3-none-any.whl", hash = "sha256:56217ab4c9a9f9c5db7b21e08732d3e7c2b807f45231ad23de0551a24c4a41f6", size = 16516, upload-time = "2026-07-20T14:16:30.978Z" },
 ]
+
+[[package]]
+name = "sseclient"
+version = "0.0.27"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cf/6c/fa601216344952be8f9a51a3f49b4274bbbc58bd395f87f67f6131726358/sseclient-0.0.27.tar.gz", hash = "sha256:b2fe534dcb33b1d3faad13d60c5a7c718e28f85987f2a034ecf5ec279918c11c", size = 7465, upload-time = "2020-09-25T02:46:41.997Z" }
 
 [[package]]
 name = "starlette"

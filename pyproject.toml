@@ -41,7 +41,7 @@ dependencies = [
     "psycopg[binary]>=3.3.4",
     #streaming
     "sse-starlette>=3.4.6",
-    
+    "sseclient>=0.0.27",
 ]
 
 
