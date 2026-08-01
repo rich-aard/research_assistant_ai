@@ -3,25 +3,29 @@ from uuid import uuid4
 
 import pytest
 
-from backend.app.models.enums import ResearchDepth
+from backend.app.models.enums import ResearchDepth, SearchSource
+from backend.app.models.search_query import SearchQuery
 from backend.app.nodes.query_generator import query_generator_node
 
 
 @pytest.mark.asyncio
 async def test_query_generator_node_success(mocker):
-    web_queries = [
-        "artificial intelligence machine learning recent advances",
-        "AI neural network model development techniques",
-    ]
-
-    arxiv_queries = [
-        "artificial intelligence machine learning recent advances",
-        "neural network architectures AI model development",
+    search_queries = [
+        SearchQuery(
+            query="recent artificial intelligence advances",
+            sources=[SearchSource.WEB, SearchSource.ARXIV],
+        ),
+        SearchQuery(
+            query="neural network architecture research",
+            sources=[
+                SearchSource.ARXIV,
+                SearchSource.CROSSREF,
+            ],
+        ),
     ]
 
     mock_output = mocker.Mock()
-    mock_output.web_queries = web_queries
-    mock_output.arxiv_queries = arxiv_queries
+    mock_output.queries = search_queries
 
     mock_chain = mocker.Mock()
     mock_chain.ainvoke = AsyncMock(return_value=mock_output)
@@ -46,8 +50,7 @@ async def test_query_generator_node_success(mocker):
     result = await query_generator_node(state)
 
     assert result == {
-        "web_queries": web_queries,
-        "arxiv_queries": arxiv_queries,
+        "search_queries": search_queries,
     }
 
     mock_chain.ainvoke.assert_awaited_once_with(
@@ -95,8 +98,7 @@ async def test_query_generator_node_empty_research_plan(mocker):
     result = await query_generator_node(state)
 
     assert result == {
-        "web_queries": [],
-        "arxiv_queries": [],
+        "search_queries": [],
     }
 
     mock_chain.ainvoke.assert_not_awaited()
@@ -130,8 +132,16 @@ async def test_query_generator_node_fallback(mocker):
     result = await query_generator_node(state)
 
     assert result == {
-        "web_queries": research_plan,
-        "arxiv_queries": research_plan,
+        "search_queries": [
+            SearchQuery(
+                query=query,
+                sources=[
+                    SearchSource.WEB,
+                    SearchSource.ARXIV,
+                ],
+            )
+            for query in research_plan
+        ],
     }
 
     mock_chain.ainvoke.assert_awaited_once_with(

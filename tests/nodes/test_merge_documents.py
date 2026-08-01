@@ -1,5 +1,6 @@
 import pytest
 
+from backend.app.models.enums import SearchSource
 from backend.app.models.search import SearchResult
 from backend.app.nodes.merge_documents import (
     _deduplicate_documents,
@@ -9,7 +10,7 @@ from backend.app.nodes.merge_documents import (
 
 def make_search_result(
     title: str = "AI Research",
-    source: str = "tavily",
+    source: SearchSource = SearchSource.WEB,
     url: str = "https://example.com",
     content: str = "Research content.",
     score: float | None = 0.5,
@@ -43,7 +44,7 @@ def test_deduplicate_documents():
     )
 
     result = _deduplicate_documents(
-        [first, duplicate, second]
+        [first, duplicate, second],
     )
 
     assert result == [first, second]
@@ -60,12 +61,14 @@ async def test_merge_documents_node_success():
     web_results = [
         make_search_result(
             title="Web Low",
-            url="https://example.com/low",
+            source=SearchSource.WEB,
+            url="https://example.com/web-low",
             score=0.3,
         ),
         make_search_result(
             title="Web High",
-            url="https://example.com/high",
+            source=SearchSource.WEB,
+            url="https://example.com/web-high",
             score=0.9,
         ),
     ]
@@ -73,9 +76,27 @@ async def test_merge_documents_node_success():
     arxiv_results = [
         make_search_result(
             title="Academic",
-            source="arxiv",
+            source=SearchSource.ARXIV,
             url="https://arxiv.org/1234",
             score=0.7,
+        ),
+    ]
+
+    crossref_results = [
+        make_search_result(
+            title="CrossRef Research",
+            source=SearchSource.CROSSREF,
+            url="https://doi.org/10.1234/example",
+            score=0.8,
+        ),
+    ]
+
+    wikipedia_results = [
+        make_search_result(
+            title="Artificial Intelligence - Wikipedia",
+            source=SearchSource.WIKIPEDIA,
+            url="https://en.wikipedia.org/wiki/Artificial_intelligence",
+            score=0.6,
         ),
     ]
 
@@ -83,39 +104,55 @@ async def test_merge_documents_node_success():
         {
             "web_results": web_results,
             "arxiv_results": arxiv_results,
+            "crossref_results": crossref_results,
+            "wikipedia_results": wikipedia_results,
         }
     )
 
     assert result["merged_documents"] == [
         web_results[1],
+        crossref_results[0],
         arxiv_results[0],
+        wikipedia_results[0],
         web_results[0],
     ]
 
 
 @pytest.mark.asyncio
-async def test_merge_documents_node_deduplicates():
+async def test_merge_documents_node_deduplicates_across_sources():
     web_result = make_search_result(
         title="Web Result",
+        source=SearchSource.WEB,
         url="https://example.com/shared",
         score=0.5,
     )
 
-    arxiv_result = make_search_result(
-        title="Duplicate Result",
-        source="arxiv",
+    crossref_result = make_search_result(
+        title="CrossRef Duplicate",
+        source=SearchSource.CROSSREF,
         url="https://example.com/shared",
         score=0.9,
+    )
+
+    wikipedia_result = make_search_result(
+        title="Wikipedia Duplicate",
+        source=SearchSource.WIKIPEDIA,
+        url="https://example.com/shared",
+        score=0.8,
     )
 
     result = await merge_documents_node(
         {
             "web_results": [web_result],
-            "arxiv_results": [arxiv_result],
+            "arxiv_results": [],
+            "crossref_results": [crossref_result],
+            "wikipedia_results": [wikipedia_result],
         }
     )
 
     assert len(result["merged_documents"]) == 1
+
+    # First document with the URL wins.
     assert result["merged_documents"][0] == web_result
 
 
@@ -125,6 +162,8 @@ async def test_merge_documents_node_empty():
         {
             "web_results": [],
             "arxiv_results": [],
+            "crossref_results": [],
+            "wikipedia_results": [],
         }
     )
 
@@ -147,6 +186,7 @@ async def test_merge_documents_node_limits_to_ten():
     documents = [
         make_search_result(
             title=f"Document {i}",
+            source=SearchSource.WEB,
             url=f"https://example.com/{i}",
             score=float(i),
         )
@@ -157,16 +197,14 @@ async def test_merge_documents_node_limits_to_ten():
         {
             "web_results": documents,
             "arxiv_results": [],
+            "crossref_results": [],
+            "wikipedia_results": [],
         }
     )
 
     assert len(result["merged_documents"]) == 10
 
-    # Highest scores should be retained.
-    assert [
-        document.title
-        for document in result["merged_documents"]
-    ] == [
+    assert [document.title for document in result["merged_documents"]] == [
         "Document 14",
         "Document 13",
         "Document 12",
@@ -185,24 +223,35 @@ async def test_merge_documents_node_none_scores():
     documents = [
         make_search_result(
             title="No Score",
+            source=SearchSource.WEB,
             url="https://example.com/no-score",
             score=None,
         ),
         make_search_result(
             title="Scored",
+            source=SearchSource.WEB,
             url="https://example.com/scored",
             score=0.8,
+        ),
+        make_search_result(
+            title="Wikipedia No Score",
+            source=SearchSource.WIKIPEDIA,
+            url="https://en.wikipedia.org/wiki/AI",
+            score=None,
         ),
     ]
 
     result = await merge_documents_node(
         {
-            "web_results": documents,
+            "web_results": documents[:2],
             "arxiv_results": [],
+            "crossref_results": [],
+            "wikipedia_results": [documents[2]],
         }
     )
 
     assert result["merged_documents"] == [
         documents[1],
         documents[0],
+        documents[2],
     ]

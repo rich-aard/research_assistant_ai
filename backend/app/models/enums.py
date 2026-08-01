@@ -30,10 +30,23 @@ class TaskStage(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 class ResearchDepth(StrEnum):
     """
     Supported research depth levels.
     """
+
     QUICK = "quick"
     STANDARD = "standard"
     COMPREHENSIVE = "comprehensive"
+
+
+class SearchSource(StrEnum):
+    """
+    Supported external search providers.
+    """
+
+    WEB = "web"
+    ARXIV = "arxiv"
+    CROSSREF = "crossref"
+    WIKIPEDIA = "wikipedia"

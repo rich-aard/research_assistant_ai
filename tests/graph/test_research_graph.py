@@ -19,6 +19,8 @@ def test_graph_contains_all_nodes():
         "query_generator",
         "web_search",
         "arxiv_search",
+        "crossref_search",
+        "wikipedia_search",
         "merge_documents",
         "writer",
         "summarizer",
@@ -38,18 +40,18 @@ def test_graph_edges():
     graph = build_graph()
     edges = graph.get_graph().edges
 
-    edge_pairs = {
-        (edge.source, edge.target)
-        for edge in edges
-    }
+    edge_pairs = {(edge.source, edge.target) for edge in edges}
 
     expected_edges = {
         (START, "planner"),
         ("planner", "query_generator"),
         ("query_generator", "web_search"),
         ("query_generator", "arxiv_search"),
+        ("query_generator", "crossref_search"),
         ("web_search", "merge_documents"),
         ("arxiv_search", "merge_documents"),
+        ("crossref_search", "merge_documents"),
+        ("wikipedia_search", "merge_documents"),
         ("merge_documents", "writer"),
         ("writer", "summarizer"),
         ("summarizer", END),

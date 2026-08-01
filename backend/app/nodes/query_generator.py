@@ -1,6 +1,7 @@
 from backend.app.clients.groq import get_llm
 from backend.app.core.logging import get_logger
 from backend.app.models.query_generator import QueryGeneratorOutput
+from backend.app.models.search_query import SearchQuery
 from backend.app.models.state import ResearchState
 from backend.app.prompts.query_generator_prompt import query_generator_prompt
 
@@ -31,8 +32,7 @@ async def query_generator_node(
         )
 
         return {
-            "web_queries": [],
-            "arxiv_queries": [],
+            "search_queries": [],
         }
 
     try:
@@ -44,15 +44,13 @@ async def query_generator_node(
         )
 
         logger.info(
-            "Generated %d web queries and %d arXiv queries for %s",
-            len(output.web_queries),
-            len(output.arxiv_queries),
+            "Generated %d search queries for %s",
+            len(output.queries),
             topic,
         )
 
         return {
-            "web_queries": output.web_queries,
-            "arxiv_queries": output.arxiv_queries,
+            "search_queries": output.queries,
         }
 
     except Exception:
@@ -63,6 +61,11 @@ async def query_generator_node(
         )
 
         return {
-            "web_queries": research_plan,
-            "arxiv_queries": research_plan,
+            "search_queries": [
+                SearchQuery(
+                    query=query,
+                    sources=["web", "arxiv"],
+                )
+                for query in research_plan
+            ],
         }

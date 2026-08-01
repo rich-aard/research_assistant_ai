@@ -1,12 +1,13 @@
 import pytest
 
+from backend.app.models.enums import SearchSource
 from backend.app.models.search import SearchResult
 from backend.app.nodes.web_search import web_search_node
 
 
 def make_search_result(
     title: str = "AI Research",
-    source: str = "tavily",
+    source: SearchSource = SearchSource.WEB,
     url: str = "https://example.com",
     content: str = "Research content.",
 ) -> SearchResult:
@@ -40,7 +41,7 @@ async def test_web_search_node_success(mocker):
     )
 
     state = {
-        "web_queries": [
+        "queries": [
             "artificial intelligence research",
             "machine learning research",
         ],
@@ -63,7 +64,7 @@ async def test_web_search_node_empty_queries(mocker):
 
     result = await web_search_node(
         {
-            "web_queries": [],
+            "queries": [],
         }
     )
 
@@ -103,7 +104,7 @@ async def test_web_search_node_partial_failure(mocker):
 
     result = await web_search_node(
         {
-            "web_queries": [
+            "queries": [
                 "successful query",
                 "failing query",
             ],
@@ -127,7 +128,7 @@ async def test_web_search_node_all_fail(mocker):
 
     result = await web_search_node(
         {
-            "web_queries": [
+            "queries": [
                 "query one",
                 "query two",
             ],

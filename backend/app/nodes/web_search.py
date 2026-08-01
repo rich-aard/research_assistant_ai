@@ -8,15 +8,17 @@ from backend.app.models.state import ResearchState
 logger = get_logger(__name__)
 
 
-async def web_search_node(state: ResearchState) -> ResearchState:
+async def web_search_node(
+    state: ResearchState,
+) -> ResearchState:
     """
     Search the web for each research step using Tavily.
     """
-    queries = state.get("web_queries", [])
+    queries = state.get("queries", [])
 
     if not queries:
         logger.warning(
-            "No web queries available. Skipping web search.",
+            "No queries available. Skipping web search.",
         )
 
         return {

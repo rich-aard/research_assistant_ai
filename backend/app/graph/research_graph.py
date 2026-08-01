@@ -2,11 +2,14 @@ from langgraph.graph import END, START, StateGraph
 
 from backend.app.models.state import ResearchState
 from backend.app.nodes.arxiv_search import arxiv_search_node
+from backend.app.nodes.crossref_search import crossref_search_node
 from backend.app.nodes.merge_documents import merge_documents_node
 from backend.app.nodes.planner import planner_node
 from backend.app.nodes.query_generator import query_generator_node
+from backend.app.nodes.search_router import search_router_node
 from backend.app.nodes.summarizer import summarizer_node
 from backend.app.nodes.web_search import web_search_node
+from backend.app.nodes.wikipedia_search import wikipedia_search_node
 from backend.app.nodes.writer import writer_node
 
 
@@ -47,6 +50,15 @@ def build_graph():
         query_generator_node,
     )
 
+    workflow.add_node(
+        "crossref_search",
+        crossref_search_node,
+    )
+    workflow.add_node(
+        "wikipedia_search",
+        wikipedia_search_node,
+    )
+
     # edges
     workflow.add_edge(
         START,
@@ -56,21 +68,36 @@ def build_graph():
         "planner",
         "query_generator",
     )
-    workflow.add_edge(
+    workflow.add_conditional_edges(
         "query_generator",
-        "web_search",
-    )
-    workflow.add_edge(
-        "query_generator",
-        "arxiv_search",
-    )
-    workflow.add_edge(
+        search_router_node,
         [
             "web_search",
             "arxiv_search",
+            "crossref_search",
+            "wikipedia_search",
         ],
+    )
+
+    workflow.add_edge(
+        "web_search",
         "merge_documents",
     )
+
+    workflow.add_edge(
+        "arxiv_search",
+        "merge_documents",
+    )
+
+    workflow.add_edge(
+        "crossref_search",
+        "merge_documents",
+    )
+    workflow.add_edge(
+        "wikipedia_search",
+        "merge_documents",
+    )
+
     workflow.add_edge(
         "merge_documents",
         "writer",

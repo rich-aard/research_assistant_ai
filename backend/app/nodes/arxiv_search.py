@@ -12,7 +12,7 @@ async def arxiv_search_node(state: ResearchState) -> ResearchState:
     """
     Search arXiv for academic papers corresponding to each research step.
     """
-    queries = state.get("arxiv_queries", [])
+    queries = state.get("queries", [])
 
     logger.info(
         "Running %d arXiv queries",
@@ -27,7 +27,7 @@ async def arxiv_search_node(state: ResearchState) -> ResearchState:
 
     if not queries:
         logger.warning(
-            "No arXiv queries available. Skipping arXiv search.",
+            "No queries available. Skipping arXiv search.",
         )
 
         return {

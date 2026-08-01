@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from backend.app.models.enums import ResearchDepth
+from backend.app.models.enums import ResearchDepth, SearchSource
 from backend.app.models.search import SearchResult
 from backend.app.nodes.writer import (
     _format_documents,
@@ -14,7 +14,7 @@ from backend.app.nodes.writer import (
 
 def make_search_result(
     title: str = "AI Research",
-    source: str = "tavily",
+    source: SearchSource = SearchSource.WEB,
     url: str = "https://example.com",
     content: str = "Artificial intelligence research content.",
 ) -> SearchResult:
@@ -30,13 +30,13 @@ def test_format_documents():
     results = [
         make_search_result(
             title="AI Research",
-            source="tavily",
+            source=SearchSource.WEB,
             url="https://example.com",
             content="Research content",
         ),
         make_search_result(
             title="Machine Learning",
-            source="arxiv",
+            source=SearchSource.ARXIV,
             url="https://arxiv.org/example",
             content="Academic content",
         ),
@@ -45,7 +45,7 @@ def test_format_documents():
     formatted = _format_documents(results)
 
     assert "Title: AI Research" in formatted
-    assert "Source: tavily" in formatted
+    assert "Source: web" in formatted
     assert "URL: https://example.com" in formatted
     assert "Content: Research content" in formatted
 
@@ -100,7 +100,7 @@ async def test_writer_node_success(mocker):
     documents = [
         make_search_result(
             title="AI Research",
-            source="tavily",
+            source=SearchSource.WEB,
             url="https://example.com",
             content="AI research content.",
         )

@@ -3,6 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from backend.app.clients import tavily
+from backend.app.models.enums import SearchSource
 
 
 def test_get_tavily_client_is_cached(mocker):
@@ -63,12 +64,12 @@ def test_search_web_success(mocker):
     assert results[0].title == "Artificial Intelligence"
     assert str(results[0].url) == "https://example.com/ai"
     assert results[0].content == "Artificial intelligence research."
-    assert results[0].source == "tavily"
+    assert results[0].source == SearchSource.WEB
     assert results[0].score == 0.95
     assert results[0].snippet == "Artificial intelligence research."
 
     assert results[1].title == "Machine Learning"
-    assert results[1].source == "tavily"
+    assert results[1].source == SearchSource.WEB
     assert results[1].score == 0.85
 
     client.search.assert_called_once_with(
@@ -139,7 +140,7 @@ def test_search_web_missing_optional_item_fields(mocker):
     assert result.title == "Artificial Intelligence"
     assert str(result.url) == "https://example.com/ai"
     assert result.content == ""
-    assert result.source == "tavily"
+    assert result.source == SearchSource.WEB
     assert result.score is None
     assert result.snippet is None
 

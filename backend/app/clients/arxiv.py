@@ -4,6 +4,7 @@ import arxiv
 from arxiv import Client, Search, SortCriterion
 
 from backend.app.core.logging import get_logger
+from backend.app.models.enums import SearchSource
 from backend.app.models.search import SearchResult
 
 logger = get_logger(__name__)
@@ -54,7 +55,7 @@ def search_arxiv(
                     url=paper.entry_id,
                     content=paper.summary,
                     snippet=paper.summary,
-                    source="arxiv",
+                    source=SearchSource.ARXIV,
                 )
             )
 

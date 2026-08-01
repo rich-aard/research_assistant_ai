@@ -3,9 +3,11 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from backend.app.graph.research_graph import build_graph
+from backend.app.models.enums import SearchSource
 from backend.app.models.planner import PlannerOutput
 from backend.app.models.query_generator import QueryGeneratorOutput
 from backend.app.models.search import SearchResult
+from backend.app.models.search_query import SearchQuery
 from backend.app.models.summarizer import SummarizerOutput
 
 
@@ -30,17 +32,39 @@ async def test_complete_research_workflow(mocker):
 
     # Query generator
     query_output = QueryGeneratorOutput(
-        web_queries=[
-            "artificial intelligence fundamentals modern applications",
-            "machine learning approaches current developments",
-            "artificial intelligence applications industry",
-            "artificial intelligence challenges limitations",
-        ],
-        arxiv_queries=[
-            "artificial intelligence fundamentals machine learning",
-            "modern machine learning approaches artificial intelligence",
-            "artificial intelligence applications recent advances",
-            "artificial intelligence challenges limitations",
+        queries=[
+            SearchQuery(
+                query="artificial intelligence fundamentals modern applications",
+                sources=[SearchSource.WEB],
+            ),
+            SearchQuery(
+                query="machine learning approaches current developments",
+                sources=[SearchSource.WEB],
+            ),
+            SearchQuery(
+                query="artificial intelligence applications industry",
+                sources=[SearchSource.WEB],
+            ),
+            SearchQuery(
+                query="artificial intelligence challenges limitations",
+                sources=[SearchSource.WEB],
+            ),
+            SearchQuery(
+                query="artificial intelligence fundamentals machine learning",
+                sources=[SearchSource.ARXIV],
+            ),
+            SearchQuery(
+                query="modern machine learning approaches artificial intelligence",
+                sources=[SearchSource.ARXIV],
+            ),
+            SearchQuery(
+                query="artificial intelligence applications recent advances",
+                sources=[SearchSource.ARXIV],
+            ),
+            SearchQuery(
+                query="artificial intelligence challenges limitations",
+                sources=[SearchSource.ARXIV],
+            ),
         ],
     )
 
@@ -51,18 +75,18 @@ async def test_complete_research_workflow(mocker):
         Mock(ainvoke=query_invoke),
     )
 
-    #  web results
+    # Web results
     web_results = [
         SearchResult(
             title="Artificial Intelligence Overview",
-            source="tavily",
+            source=SearchSource.WEB,
             url="https://example.com/ai",
             content="Artificial intelligence enables machines to perform tasks.",
             score=0.9,
         ),
         SearchResult(
             title="Machine Learning Applications",
-            source="tavily",
+            source=SearchSource.WEB,
             url="https://example.com/ml",
             content="Machine learning is widely used in modern applications.",
             score=0.8,
@@ -79,18 +103,18 @@ async def test_complete_research_workflow(mocker):
         ],
     )
 
-    #  arXiv results
+    # arXiv results
     arxiv_results = [
         SearchResult(
             title="Recent Advances in Artificial Intelligence",
-            source="arxiv",
+            source=SearchSource.ARXIV,
             url="https://arxiv.org/example",
             content="Recent research explores advances in artificial intelligence.",
             score=0.95,
         ),
         SearchResult(
             title="Machine Learning Research",
-            source="arxiv",
+            source=SearchSource.ARXIV,
             url="https://arxiv.org/ml",
             content="Academic research continues to improve machine learning.",
             score=0.85,
@@ -139,7 +163,7 @@ async def test_complete_research_workflow(mocker):
         Mock(ainvoke=summarizer_invoke),
     )
 
-    #  workflow
+    # Workflow
     graph = build_graph()
 
     result = await graph.ainvoke(
@@ -154,9 +178,7 @@ async def test_complete_research_workflow(mocker):
     assert result["depth"] == "quick"
 
     assert result["research_plan"] == planner_output.research_plan
-
-    assert result["web_queries"] == query_output.web_queries
-    assert result["arxiv_queries"] == query_output.arxiv_queries
+    assert result["search_queries"] == query_output.queries
 
     assert result["web_results"] == web_results
     assert result["arxiv_results"] == arxiv_results
@@ -167,8 +189,8 @@ async def test_complete_research_workflow(mocker):
     assert result["summary"] == summarizer_output.summary
 
     # Verify external boundaries were called
-    assert web_search_mock.call_count == len(query_output.web_queries)
-    assert arxiv_search_mock.call_count == len(query_output.arxiv_queries)
+    assert web_search_mock.call_count == 4
+    assert arxiv_search_mock.call_count == 4
 
     planner_invoke.assert_awaited_once()
     query_invoke.assert_awaited_once()
@@ -190,11 +212,15 @@ async def test_research_workflow_with_planner_failure(mocker):
 
     # Query generator
     query_output = QueryGeneratorOutput(
-        web_queries=[
-            "artificial intelligence fundamentals applications",
-        ],
-        arxiv_queries=[
-            "artificial intelligence fundamentals machine learning",
+        queries=[
+            SearchQuery(
+                query="artificial intelligence fundamentals applications",
+                sources=[SearchSource.WEB],
+            ),
+            SearchQuery(
+                query="artificial intelligence fundamentals machine learning",
+                sources=[SearchSource.ARXIV],
+            ),
         ],
     )
 
@@ -208,7 +234,7 @@ async def test_research_workflow_with_planner_failure(mocker):
     # Search results
     web_result = SearchResult(
         title="Artificial Intelligence Overview",
-        source="tavily",
+        source=SearchSource.WEB,
         url="https://example.com/ai",
         content="Artificial intelligence enables machines to perform tasks.",
         score=0.9,
@@ -221,7 +247,7 @@ async def test_research_workflow_with_planner_failure(mocker):
 
     arxiv_result = SearchResult(
         title="Artificial Intelligence Research",
-        source="arxiv",
+        source=SearchSource.ARXIV,
         url="https://arxiv.org/example",
         content="Recent research explores artificial intelligence.",
         score=0.95,
@@ -283,8 +309,7 @@ async def test_research_workflow_with_planner_failure(mocker):
     assert result["research_plan"] == expected_fallback_plan
 
     # Verify workflow continued after planner failure
-    assert result["web_queries"] == query_output.web_queries
-    assert result["arxiv_queries"] == query_output.arxiv_queries
+    assert result["search_queries"] == query_output.queries
 
     assert result["web_results"] == [web_result]
     assert result["arxiv_results"] == [arxiv_result]
@@ -323,13 +348,23 @@ async def test_research_workflow_with_search_failure(mocker):
 
     # Query generator
     query_output = QueryGeneratorOutput(
-        web_queries=[
-            "artificial intelligence fundamentals",
-            "modern machine learning approaches",
-        ],
-        arxiv_queries=[
-            "artificial intelligence machine learning",
-            "modern machine learning research",
+        queries=[
+            SearchQuery(
+                query="artificial intelligence fundamentals",
+                sources=[SearchSource.WEB],
+            ),
+            SearchQuery(
+                query="modern machine learning approaches",
+                sources=[SearchSource.WEB],
+            ),
+            SearchQuery(
+                query="artificial intelligence machine learning",
+                sources=[SearchSource.ARXIV],
+            ),
+            SearchQuery(
+                query="modern machine learning research",
+                sources=[SearchSource.ARXIV],
+            ),
         ],
     )
 
@@ -344,7 +379,7 @@ async def test_research_workflow_with_search_failure(mocker):
     # First query fails, second succeeds.
     web_result = SearchResult(
         title="Machine Learning Applications",
-        source="tavily",
+        source=SearchSource.WEB,
         url="https://example.com/ml",
         content="Machine learning is widely used in modern applications.",
         score=0.8,
@@ -362,7 +397,7 @@ async def test_research_workflow_with_search_failure(mocker):
     # First query fails, second succeeds.
     arxiv_result = SearchResult(
         title="Machine Learning Research",
-        source="arxiv",
+        source=SearchSource.ARXIV,
         url="https://arxiv.org/ml",
         content="Academic research continues to improve machine learning.",
         score=0.85,

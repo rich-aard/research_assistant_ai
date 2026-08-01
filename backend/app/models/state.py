@@ -5,6 +5,7 @@ from typing_extensions import TypedDict
 
 from backend.app.models.enums import ResearchDepth
 from backend.app.models.search import SearchResult
+from backend.app.models.search_query import SearchQuery
 
 
 class ResearchState(TypedDict, total=False):
@@ -21,13 +22,17 @@ class ResearchState(TypedDict, total=False):
     # Planning
     research_plan: list[str]
 
-    # Search Queries
-    web_queries: list[str]
-    arxiv_queries: list[str]
+    # search queries
+    search_queries: list[SearchQuery]
+
+    # routed Search Queries
+    queries: list[SearchQuery]
 
     # Search Results
+    crossref_results: list[SearchResult]
     web_results: list[SearchResult]
     arxiv_results: list[SearchResult]
+    wikipedia_results: list[SearchResult]
 
     # Before summarization
     merged_documents: list[SearchResult]

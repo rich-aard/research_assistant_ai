@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     groq_api_key: str | None = Field(default=None, alias="GROQ_API_KEY")
     tavily_api_key: str | None = Field(default=None, alias="TAVILY_API_KEY")
 
+    # external services
+    crossref_api_url: str = Field(
+        default="https://api.crossref.org/works",
+        alias="CROSSREF_API_URL",
+    )
+    wikipedia_api_url: str = Field(
+        default="https://en.wikipedia.org/w/api.php",
+        alias="WIKIPEDIA_API_URL",
+    )
+
     # models
     groq_llm_model: str = Field(
         default="openai/gpt-oss-120b",

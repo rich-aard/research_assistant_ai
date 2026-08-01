@@ -44,7 +44,7 @@ async def test_arxiv_search_node_success(mocker):
     )
 
     state = {
-        "arxiv_queries": [
+        "queries": [
             "transformer architecture",
             "large language model attention",
         ],
@@ -69,7 +69,7 @@ async def test_arxiv_search_node_success(mocker):
 async def test_arxiv_search_node_empty_queries(caplog):
     result = await arxiv_search_node(
         {
-            "arxiv_queries": [],
+            "queries": [],
         }
     )
 
@@ -105,7 +105,7 @@ async def test_arxiv_search_node_partial_failure(mocker):
 
     result = await arxiv_search_node(
         {
-            "arxiv_queries": [
+            "queries": [
                 "failed query",
                 "successful query",
             ],
@@ -124,7 +124,7 @@ async def test_arxiv_search_node_all_fail(mocker):
 
     result = await arxiv_search_node(
         {
-            "arxiv_queries": [
+            "queries": [
                 "query one",
                 "query two",
             ],

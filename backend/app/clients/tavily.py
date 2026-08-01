@@ -4,6 +4,7 @@ from tavily import TavilyClient
 
 from backend.app.core.config import settings
 from backend.app.core.logging import get_logger
+from backend.app.models.enums import SearchSource
 from backend.app.models.search import SearchResult
 
 logger = get_logger(__name__)
@@ -54,7 +55,7 @@ def search_web(
                 title=item.get("title", ""),
                 url=item.get("url", ""),
                 content=item.get("content", ""),
-                source="tavily",
+                source=SearchSource.WEB,
                 score=item.get("score"),
                 snippet=item.get("content"),
             )

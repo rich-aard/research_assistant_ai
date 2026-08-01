@@ -31,10 +31,14 @@ async def merge_documents_node(
     """
     web_results = state.get("web_results", [])
     arxiv_results = state.get("arxiv_results", [])
+    crossref_results = state.get("crossref_results", [])
+    wikipedia_results = state.get("wikipedia_results", [])
 
     documents = [
         *web_results,
         *arxiv_results,
+        *crossref_results,
+        *wikipedia_results,
     ]
 
     documents = _deduplicate_documents(documents)
@@ -46,7 +50,10 @@ async def merge_documents_node(
 
     logger.info(
         "Merged %d document(s) into %d unique document(s)",
-        len(web_results) + len(arxiv_results),
+        len(web_results)
+        + len(arxiv_results)
+        + len(crossref_results)
+        + len(wikipedia_results),
         len(documents),
     )
 
