@@ -1,17 +1,17 @@
-from frontend.components.results import render_results
+from frontend.app.components.results import render_results
 
 
 def test_render_results_without_result(mocker):
     mocker.patch(
-        "frontend.components.results.st.session_state",
+        "frontend.app.components.results.st.session_state",
         {},
     )
 
     error = mocker.patch(
-        "frontend.components.results.st.error",
+        "frontend.app.components.results.st.error",
     )
     button = mocker.patch(
-        "frontend.components.results.st.button",
+        "frontend.app.components.results.st.button",
         return_value=False,
     )
 
@@ -38,31 +38,31 @@ def test_render_results_with_result(mocker):
     }
 
     mocker.patch(
-        "frontend.components.results.st.session_state",
+        "frontend.app.components.results.st.session_state",
         {"research_result": result},
     )
 
     title = mocker.patch(
-        "frontend.components.results.st.title",
+        "frontend.app.components.results.st.title",
     )
     subheader = mocker.patch(
-        "frontend.components.results.st.subheader",
+        "frontend.app.components.results.st.subheader",
     )
     markdown = mocker.patch(
-        "frontend.components.results.st.markdown",
+        "frontend.app.components.results.st.markdown",
     )
 
     mocker.patch(
-        "frontend.components.results.st.info",
+        "frontend.app.components.results.st.info",
     )
     mocker.patch(
-        "frontend.components.results.st.caption",
+        "frontend.app.components.results.st.caption",
     )
     mocker.patch(
-        "frontend.components.results.st.divider",
+        "frontend.app.components.results.st.divider",
     )
     mocker.patch(
-        "frontend.components.results.st.button",
+        "frontend.app.components.results.st.button",
         return_value=False,
     )
 
@@ -86,28 +86,28 @@ def test_render_results_without_sources(mocker):
     }
 
     mocker.patch(
-        "frontend.components.results.st.session_state",
+        "frontend.app.components.results.st.session_state",
         {"research_result": result},
     )
 
     info = mocker.patch(
-        "frontend.components.results.st.info",
+        "frontend.app.components.results.st.info",
     )
 
     mocker.patch(
-        "frontend.components.results.st.title",
+        "frontend.app.components.results.st.title",
     )
     mocker.patch(
-        "frontend.components.results.st.subheader",
+        "frontend.app.components.results.st.subheader",
     )
     mocker.patch(
-        "frontend.components.results.st.markdown",
+        "frontend.app.components.results.st.markdown",
     )
     mocker.patch(
-        "frontend.components.results.st.divider",
+        "frontend.app.components.results.st.divider",
     )
     mocker.patch(
-        "frontend.components.results.st.button",
+        "frontend.app.components.results.st.button",
         return_value=False,
     )
 
@@ -139,36 +139,36 @@ def test_start_new_research_clears_state(
     )
 
     mocker.patch(
-        "frontend.components.results.st.session_state",
+        "frontend.app.components.results.st.session_state",
         session_state,
     )
 
     mocker.patch(
-        "frontend.components.results.st.title",
+        "frontend.app.components.results.st.title",
     )
     mocker.patch(
-        "frontend.components.results.st.subheader",
+        "frontend.app.components.results.st.subheader",
     )
     mocker.patch(
-        "frontend.components.results.st.markdown",
+        "frontend.app.components.results.st.markdown",
     )
     mocker.patch(
-        "frontend.components.results.st.info",
+        "frontend.app.components.results.st.info",
     )
     mocker.patch(
-        "frontend.components.results.st.caption",
+        "frontend.app.components.results.st.caption",
     )
     mocker.patch(
-        "frontend.components.results.st.divider",
+        "frontend.app.components.results.st.divider",
     )
 
     button = mocker.patch(
-        "frontend.components.results.st.button",
+        "frontend.app.components.results.st.button",
         return_value=True,
     )
 
     rerun = mocker.patch(
-        "frontend.components.results.st.rerun",
+        "frontend.app.components.results.st.rerun",
     )
 
     render_results()

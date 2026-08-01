@@ -1,8 +1,8 @@
 import streamlit as st
 
-from frontend.components.research_form import render_research_form
-from frontend.components.progress import render_progress
-from frontend.components.results import render_results
+from frontend.app.components.progress import render_progress
+from frontend.app.components.research_form import render_research_form
+from frontend.app.components.results import render_results
 
 
 def main() -> None:

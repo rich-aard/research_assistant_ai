@@ -1,10 +1,14 @@
+import sys
 from collections.abc import AsyncGenerator
+from unittest.mock import MagicMock
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from backend.app.database.session import async_session_factory
 from backend.app.main import app
+
+sys.modules["streamlit"] = MagicMock()
 
 
 @pytest_asyncio.fixture

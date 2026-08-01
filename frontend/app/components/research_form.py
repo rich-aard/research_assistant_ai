@@ -2,7 +2,7 @@ import requests
 import streamlit as st
 
 from backend.app.models.enums import ResearchDepth
-from frontend.utils.research import start_new_research
+from frontend.app.utils.research import start_new_research
 
 VALID_DEPTHS = [depth.value for depth in ResearchDepth]
 DEFAULT_DEPTH = ResearchDepth.STANDARD.value

@@ -2,7 +2,7 @@ from unittest.mock import call, patch
 
 import streamlit as st
 
-from frontend.components.sources import render_sources
+from frontend.app.components.sources import render_sources
 
 
 def test_no_sources_key_in_result(session_state):

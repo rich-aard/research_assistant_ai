@@ -1,4 +1,9 @@
-from frontend import app
+from unittest.mock import MagicMock
+
+from frontend.app import app
+
+if not hasattr(app, "st"):
+    app.st = MagicMock()
 
 
 def test_main_initializes_page(mocker, session_state):

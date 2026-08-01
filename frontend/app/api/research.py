@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import requests
 import sseclient
 
-from frontend.utils.config import RESEARCH_ENDPOINT
+from frontend.app.utils.config import RESEARCH_ENDPOINT
 
 API_TIMEOUT = 10
 

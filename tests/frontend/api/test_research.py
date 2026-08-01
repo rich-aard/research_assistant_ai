@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 
-from frontend.api.research import (
+from frontend.app.api.research import (
     get_research,
     start_research,
     stream_research,
@@ -22,7 +22,7 @@ def test_start_research_success(mocker):
     }
 
     mock_post = mocker.patch(
-        "frontend.api.research.requests.post",
+        "frontend.app.api.research.requests.post",
         return_value=response,
     )
 
@@ -49,7 +49,7 @@ def test_start_research_http_error(mocker):
     )
 
     mocker.patch(
-        "frontend.api.research.requests.post",
+        "frontend.app.api.research.requests.post",
         return_value=response,
     )
 
@@ -67,7 +67,7 @@ def test_start_research_malformed_response(mocker):
     }
 
     mocker.patch(
-        "frontend.api.research.requests.post",
+        "frontend.app.api.research.requests.post",
         return_value=response,
     )
 
@@ -92,7 +92,7 @@ def test_get_research_success(mocker):
     }
 
     mock_get = mocker.patch(
-        "frontend.api.research.requests.get",
+        "frontend.app.api.research.requests.get",
         return_value=response,
     )
 
@@ -119,7 +119,7 @@ def test_get_research_http_error(mocker):
     )
 
     mocker.patch(
-        "frontend.api.research.requests.get",
+        "frontend.app.api.research.requests.get",
         return_value=response,
     )
 
@@ -134,7 +134,7 @@ def test_get_research_malformed_response(mocker):
     }
 
     mocker.patch(
-        "frontend.api.research.requests.get",
+        "frontend.app.api.research.requests.get",
         return_value=response,
     )
 
@@ -173,11 +173,11 @@ def test_stream_research_success(mocker):
     client.events.return_value = iter(events)
 
     mocker.patch(
-        "frontend.api.research.requests.get",
+        "frontend.app.api.research.requests.get",
         return_value=response,
     )
     mocker.patch(
-        "frontend.api.research.sseclient.SSEClient",
+        "frontend.app.api.research.sseclient.SSEClient",
         return_value=client,
     )
 
@@ -216,11 +216,11 @@ def test_stream_research_invalid_json(mocker):
     client.events.return_value = iter([event])
 
     mocker.patch(
-        "frontend.api.research.requests.get",
+        "frontend.app.api.research.requests.get",
         return_value=response,
     )
     mocker.patch(
-        "frontend.api.research.sseclient.SSEClient",
+        "frontend.app.api.research.sseclient.SSEClient",
         return_value=client,
     )
 
@@ -246,7 +246,7 @@ def test_stream_research_http_error(mocker):
     response.__exit__.return_value = None
 
     mocker.patch(
-        "frontend.api.research.requests.get",
+        "frontend.app.api.research.requests.get",
         return_value=response,
     )
 

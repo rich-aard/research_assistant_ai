@@ -1,4 +1,9 @@
+import sys
+from unittest.mock import MagicMock
+
 import pytest
+
+sys.modules["streamlit"] = MagicMock()
 
 
 class MockSessionState(dict):
@@ -21,5 +26,13 @@ class MockSessionState(dict):
 
 
 @pytest.fixture
-def session_state():
-    return MockSessionState()
+def session_state(mocker):
+    """Provide a mocked Streamlit session state for frontend tests."""
+    state = MockSessionState()
+
+    mocker.patch(
+        "frontend.app.components.progress.st.session_state",
+        state,
+    )
+
+    return state

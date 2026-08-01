@@ -1,4 +1,5 @@
 import asyncio
+import json
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks
@@ -21,6 +22,22 @@ router = APIRouter(
 )
 
 research_service = ResearchService()
+
+
+def _serialize_event(event: dict) -> dict:
+    """
+    Ensure an SSE event's `data` field is a JSON string.
+
+    """
+    data = event.get("data")
+
+    if isinstance(data, (dict, list)):
+        event = {
+            **event,
+            "data": json.dumps(data, default=str),
+        }
+
+    return event
 
 
 @router.post(
@@ -74,14 +91,16 @@ async def stream_research(
 
     async def event_generator():
         try:
-            yield {
-                "event": "progress",
-                "data": {
-                    "status": task.status,
-                    "stage": task.stage,
-                    "progress": task.progress,
-                },
-            }
+            yield _serialize_event(
+                {
+                    "event": "progress",
+                    "data": {
+                        "status": task.status,
+                        "stage": task.stage,
+                        "progress": task.progress,
+                    },
+                }
+            )
             while True:
                 if await request.is_disconnected():
                     break
@@ -91,7 +110,7 @@ async def stream_research(
                 if event is None:
                     break
                 logger.debug("Sending SSE event %s", event["event"])
-                yield event
+                yield _serialize_event(event)
 
         except asyncio.CancelledError:
             pass

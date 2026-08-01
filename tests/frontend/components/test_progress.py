@@ -1,33 +1,36 @@
-import requests
+import pytest
+from requests import RequestException
 
-from frontend.components.progress import (
+from frontend.app.components.progress import (
     _consume_next_event,
-    _load_final_result,
+    _render_progress_state,
+    _resolve_stream_closed,
     _update_progress,
     render_progress,
 )
+
+# render_progress
 
 
 def test_render_progress_without_research_id(
     mocker,
     session_state,
 ):
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
     error = mocker.patch(
-        "frontend.components.progress.st.error",
+        "frontend.app.components.progress.st.error",
     )
 
-    render_progress()
-
-    error.assert_called_once_with(
-        "No research ID found. Please start a new research.",
+    stop = mocker.patch(
+        "frontend.app.components.progress.st.stop",
+        side_effect=RuntimeError("stopped"),
     )
 
+    with pytest.raises(RuntimeError):
+        render_progress()
+
+    error.assert_called_once_with("No research ID found. Please start a new research.")
     assert session_state["page"] == "form"
+    stop.assert_called_once()
 
 
 def test_render_progress_initializes_state(
@@ -37,35 +40,31 @@ def test_render_progress_initializes_state(
     session_state["research_id"] = "abc123"
 
     mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
-    start_stream = mocker.patch(
-        "frontend.components.progress.stream_research",
+        "frontend.app.components.progress.stream_research",
         return_value=iter([]),
     )
 
-    mock_consume = mocker.patch(
-        "frontend.components.progress._consume_next_event",
+    mocker.patch(
+        "frontend.app.components.progress._consume_next_event",
     )
 
     mocker.patch(
-        "frontend.components.progress.st.fragment",
+        "frontend.app.components.progress.st.fragment",
         side_effect=lambda **kwargs: lambda func: func,
     )
 
     mocker.patch(
-        "frontend.components.progress.st.markdown",
+        "frontend.app.components.progress.st.markdown",
     )
     mocker.patch(
-        "frontend.components.progress.st.progress",
+        "frontend.app.components.progress.st.progress",
     )
     mocker.patch(
-        "frontend.components.progress.st.info",
-    )
-    mocker.patch(
-        "frontend.components.progress.st.caption",
+        "frontend.app.components.progress.st.empty",
+        side_effect=[
+            mocker.MagicMock(),
+            mocker.MagicMock(),
+        ],
     )
 
     render_progress()
@@ -73,67 +72,58 @@ def test_render_progress_initializes_state(
     assert session_state["progress_data"] == {
         "progress": 0.0,
         "stage": "Starting...",
-        "message": "Initializing research...",
+        "message": "Initialising",
         "status": "running",
         "error": None,
     }
 
-    assert "research_events" in session_state
 
-    start_stream.assert_called_once_with("abc123")
-    mock_consume.assert_called_once()
-
-
-def test_render_progress_does_not_recreate_stream(
+def test_render_progress_creates_stream_once(
     mocker,
     session_state,
 ):
-    existing_stream = iter([])
+    session_state["research_id"] = "abc123"
 
-    session_state.update(
-        {
-            "research_id": "abc123",
-            "progress_data": {
-                "progress": 0.5,
-                "stage": "searching",
-                "message": "Searching...",
-                "status": "running",
-                "error": None,
-            },
-            "research_events": existing_stream,
-        }
-    )
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
+    stream = iter([])
 
     start_stream = mocker.patch(
-        "frontend.components.progress.stream_research",
+        "frontend.app.components.progress.stream_research",
+        return_value=stream,
     )
 
     mocker.patch(
-        "frontend.components.progress.st.fragment",
+        "frontend.app.components.progress._consume_next_event",
+    )
+
+    mocker.patch(
+        "frontend.app.components.progress.st.fragment",
         side_effect=lambda **kwargs: lambda func: func,
     )
 
     mocker.patch(
-        "frontend.components.progress.st.markdown",
+        "frontend.app.components.progress.st.markdown",
     )
     mocker.patch(
-        "frontend.components.progress.st.progress",
+        "frontend.app.components.progress.st.progress",
     )
     mocker.patch(
-        "frontend.components.progress.st.info",
-    )
-    mocker.patch(
-        "frontend.components.progress.st.caption",
+        "frontend.app.components.progress.st.empty",
+        side_effect=[
+            mocker.MagicMock(),
+            mocker.MagicMock(),
+            mocker.MagicMock(),
+            mocker.MagicMock(),
+        ],
     )
 
     render_progress()
+    render_progress()
 
-    start_stream.assert_not_called()
+    start_stream.assert_called_once_with("abc123")
+    assert session_state["research_events"] is stream
+
+
+# _consume_next_event
 
 
 def test_consume_progress_event(
@@ -143,7 +133,7 @@ def test_consume_progress_event(
     session_state["progress_data"] = {
         "progress": 0.0,
         "stage": "Starting...",
-        "message": "Initializing research...",
+        "message": "Initialising",
         "status": "running",
         "error": None,
     }
@@ -153,38 +143,32 @@ def test_consume_progress_event(
             {
                 "event": "progress",
                 "data": {
-                    "progress": 50,
+                    "progress": 35,
                     "stage": "web_search",
-                    "message": "Searching web...",
+                    "message": "Searching the web...",
                 },
-            },
+            }
         ]
-    )
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
     )
 
     _consume_next_event()
 
     assert session_state["progress_data"] == {
-        "progress": 0.5,
+        "progress": 0.35,
         "stage": "web_search",
-        "message": "Searching web...",
+        "message": "Searching the web...",
         "status": "running",
         "error": None,
     }
 
 
 def test_consume_stage_event(
-    mocker,
     session_state,
 ):
     session_state["progress_data"] = {
-        "progress": 0.2,
-        "stage": "gathering",
-        "message": "Gathering sources...",
+        "progress": 0.35,
+        "stage": "web_search",
+        "message": "Searching...",
         "status": "running",
         "error": None,
     }
@@ -194,31 +178,62 @@ def test_consume_stage_event(
             {
                 "event": "stage",
                 "data": {
-                    "progress": 75,
-                    "stage": "analyzing",
+                    "progress": 50,
+                    "stage": "arxiv_search",
+                    "message": "Searching arXiv...",
                 },
-            },
+            }
         ]
-    )
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
     )
 
     _consume_next_event()
 
-    assert session_state["progress_data"]["progress"] == 0.75
-    assert session_state["progress_data"]["stage"] == "analyzing"
+    assert session_state["progress_data"] == {
+        "progress": 0.5,
+        "stage": "arxiv_search",
+        "message": "Searching arXiv...",
+        "status": "running",
+        "error": None,
+    }
 
 
 def test_consume_complete_event(
-    mocker,
     session_state,
 ):
     session_state["progress_data"] = {
         "progress": 0.8,
-        "stage": "writing",
+        "stage": "writing_report",
+        "message": "Writing report...",
+        "status": "running",
+        "error": None,
+    }
+
+    session_state["research_events"] = iter(
+        [
+            {
+                "event": "completed",
+                "data": {},
+            }
+        ]
+    )
+
+    _consume_next_event()
+
+    assert session_state["progress_data"] == {
+        "progress": 1.0,
+        "stage": "Complete",
+        "message": "Research finished.",
+        "status": "completed",
+        "error": None,
+    }
+
+
+def test_consume_complete_event_alias(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.8,
+        "stage": "writing_report",
         "message": "Writing report...",
         "status": "running",
         "error": None,
@@ -229,33 +244,22 @@ def test_consume_complete_event(
             {
                 "event": "complete",
                 "data": {},
-            },
+            }
         ]
-    )
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
     )
 
     _consume_next_event()
 
-    assert session_state["progress_data"] == {
-        "progress": 1.0,
-        "stage": "Complete",
-        "message": "Research finished.",
-        "status": "completed",
-        "error": None,
-    }
+    assert session_state["progress_data"]["status"] == "completed"
+    assert session_state["progress_data"]["progress"] == 1.0
 
 
 def test_consume_error_event(
-    mocker,
     session_state,
 ):
     session_state["progress_data"] = {
         "progress": 0.5,
-        "stage": "searching",
+        "stage": "web_search",
         "message": "Searching...",
         "status": "running",
         "error": None,
@@ -266,30 +270,24 @@ def test_consume_error_event(
             {
                 "event": "error",
                 "data": {
-                    "message": "Research failed",
+                    "message": "Search provider failed.",
                 },
-            },
+            }
         ]
-    )
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
     )
 
     _consume_next_event()
 
     assert session_state["progress_data"]["status"] == "failed"
-    assert session_state["progress_data"]["error"] == "Research failed"
+    assert session_state["progress_data"]["error"] == "Search provider failed."
 
 
 def test_consume_error_event_without_message(
-    mocker,
     session_state,
 ):
     session_state["progress_data"] = {
         "progress": 0.5,
-        "stage": "searching",
+        "stage": "web_search",
         "message": "Searching...",
         "status": "running",
         "error": None,
@@ -300,56 +298,28 @@ def test_consume_error_event_without_message(
             {
                 "event": "error",
                 "data": {},
-            },
+            }
         ]
     )
 
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
     _consume_next_event()
 
-    assert session_state["progress_data"]["status"] == "failed"
-    assert session_state["progress_data"]["error"] == "Research failed."
-
-
-def test_consume_stream_end(
-    mocker,
-    session_state,
-):
-    session_state["progress_data"] = {
-        "progress": 0.8,
-        "stage": "writing",
-        "message": "Writing...",
-        "status": "running",
-        "error": None,
+    assert session_state["progress_data"] == {
+        "progress": 0.5,
+        "stage": "web_search",
+        "message": "Searching...",
+        "status": "failed",
+        "error": "Research failed.",
     }
-
-    session_state["research_events"] = iter([])
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
-    _consume_next_event()
-
-    assert session_state["progress_data"]["status"] == "failed"
-    assert (
-        session_state["progress_data"]["error"] == "Research stream ended unexpectedly."
-    )
 
 
 def test_consume_non_dict_event_data(
-    mocker,
     session_state,
 ):
     session_state["progress_data"] = {
-        "progress": 0.0,
-        "stage": "Starting...",
-        "message": "Initializing...",
+        "progress": 0.2,
+        "stage": "web_search",
+        "message": "Searching...",
         "status": "running",
         "error": None,
     }
@@ -358,121 +328,368 @@ def test_consume_non_dict_event_data(
         [
             {
                 "event": "progress",
-                "data": "invalid payload",
-            },
+                "data": "invalid data",
+            }
         ]
-    )
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
     )
 
     _consume_next_event()
 
-    assert session_state["progress_data"]["progress"] == 0.0
-    assert session_state["progress_data"]["stage"] == "Starting..."
-    assert session_state["progress_data"]["message"] == "Initializing..."
-
-
-def test_update_progress_converts_percentage_to_fraction(
-    mocker,
-    session_state,
-):
-    session_state["progress_data"] = {
-        "progress": 0.0,
-        "stage": "Starting...",
-        "message": "Initializing...",
-        "status": "running",
-        "error": None,
-    }
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
-    _update_progress(
-        {
-            "progress": 75,
-            "stage": "analyzing",
-            "message": "Analyzing research...",
-        }
-    )
-
-    assert session_state["progress_data"]["progress"] == 0.75
-    assert session_state["progress_data"]["stage"] == "analyzing"
-    assert session_state["progress_data"]["message"] == "Analyzing research..."
-
-
-def test_update_progress_keeps_fraction(
-    mocker,
-    session_state,
-):
-    session_state["progress_data"] = {
-        "progress": 0.0,
-        "stage": "Starting...",
-        "message": "Initializing...",
-        "status": "running",
-        "error": None,
-    }
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
-    _update_progress(
-        {
-            "progress": 0.75,
-        }
-    )
-
-    assert session_state["progress_data"]["progress"] == 0.75
-
-
-def test_update_progress_partial_data(
-    mocker,
-    session_state,
-):
-    session_state["progress_data"] = {
-        "progress": 0.25,
-        "stage": "searching",
+    # No crash; state remains unchanged because raw data
+    # does not contain progress/stage/message fields.
+    assert session_state["progress_data"] == {
+        "progress": 0.2,
+        "stage": "web_search",
         "message": "Searching...",
         "status": "running",
         "error": None,
     }
 
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
+
+def test_consume_stream_end(
+    mocker,
+    session_state,
+):
+    session_state["research_id"] = "abc123"
+    session_state["progress_data"] = {
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
+        "error": None,
+    }
+
+    session_state["research_events"] = iter([])
+
+    resolve = mocker.patch(
+        "frontend.app.components.progress._resolve_stream_closed",
     )
+
+    _consume_next_event()
+
+    resolve.assert_called_once()
+
+
+def test_consume_network_error(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.5,
+        "stage": "web_search",
+        "message": "Searching...",
+        "status": "running",
+        "error": None,
+    }
+
+    def failing_iterator():
+        raise RequestException("connection lost")
+        yield  # pragma: no cover
+
+    session_state["research_events"] = iter(failing_iterator())
+
+    _consume_next_event()
+
+    assert session_state["progress_data"]["status"] == "failed"
+    assert (
+        "Network error during progress streaming: connection lost"
+        in session_state["progress_data"]["error"]
+    )
+
+
+def test_consume_unexpected_error(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.5,
+        "stage": "web_search",
+        "message": "Searching...",
+        "status": "running",
+        "error": None,
+    }
+
+    def failing_iterator():
+        raise RuntimeError("unexpected failure")
+        yield  # pragma: no cover
+
+    session_state["research_events"] = iter(failing_iterator())
+
+    _consume_next_event()
+
+    assert session_state["progress_data"]["status"] == "failed"
+    assert (
+        "Unexpected error during progress streaming"
+        in session_state["progress_data"]["error"]
+    )
+
+
+# _render_progress_state
+
+
+def test_render_progress_state_converts_percentage(
+    mocker,
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 75,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
+        "error": None,
+    }
+
+    progress_bar = mocker.MagicMock()
+    stage_placeholder = mocker.MagicMock()
+    message_placeholder = mocker.MagicMock()
+
+    _render_progress_state(
+        progress_bar,
+        stage_placeholder,
+        message_placeholder,
+    )
+
+    progress_bar.progress.assert_called_once_with(0.75)
+    stage_placeholder.info.assert_called_once_with("**Stage:** writing_report")
+    message_placeholder.caption.assert_called_once_with("Writing...")
+
+
+def test_render_progress_state_keeps_fraction(
+    mocker,
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.65,
+        "stage": "merging",
+        "message": "Merging documents...",
+        "status": "running",
+        "error": None,
+    }
+
+    progress_bar = mocker.MagicMock()
+    stage_placeholder = mocker.MagicMock()
+    message_placeholder = mocker.MagicMock()
+
+    _render_progress_state(
+        progress_bar,
+        stage_placeholder,
+        message_placeholder,
+    )
+
+    progress_bar.progress.assert_called_once_with(0.65)
+
+
+def test_render_progress_state_clamps_progress(
+    mocker,
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 150,
+        "stage": "complete",
+        "message": "Finished.",
+        "status": "completed",
+        "error": None,
+    }
+
+    progress_bar = mocker.MagicMock()
+    stage_placeholder = mocker.MagicMock()
+    message_placeholder = mocker.MagicMock()
+
+    _render_progress_state(
+        progress_bar,
+        stage_placeholder,
+        message_placeholder,
+    )
+
+    progress_bar.progress.assert_called_once_with(1.0)
+
+
+def test_render_progress_state_default_message(
+    mocker,
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.2,
+        "stage": "processing",
+        "message": None,
+        "status": "running",
+        "error": None,
+    }
+
+    progress_bar = mocker.MagicMock()
+    stage_placeholder = mocker.MagicMock()
+    message_placeholder = mocker.MagicMock()
+
+    _render_progress_state(
+        progress_bar,
+        stage_placeholder,
+        message_placeholder,
+    )
+
+    message_placeholder.caption.assert_called_once_with("Research is running...")
+
+
+# _update_progress
+
+
+def test_update_progress_converts_percentage(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.0,
+        "stage": "Starting...",
+        "message": "Initialising",
+        "status": "running",
+        "error": None,
+    }
 
     _update_progress(
         {
-            "stage": "analyzing",
+            "progress": 80,
+            "stage": "writing_report",
+            "message": "Writing report...",
         }
     )
 
-    assert session_state["progress_data"]["progress"] == 0.25
-    assert session_state["progress_data"]["stage"] == "analyzing"
-    assert session_state["progress_data"]["message"] == "Searching..."
+    assert session_state["progress_data"]["progress"] == 0.8
+    assert session_state["progress_data"]["stage"] == "writing_report"
+    assert session_state["progress_data"]["message"] == "Writing report..."
 
 
-def test_load_final_result_success(
+def test_update_progress_keeps_fraction(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.0,
+        "stage": "Starting...",
+        "message": "Initialising",
+        "status": "running",
+        "error": None,
+    }
+
+    _update_progress(
+        {
+            "progress": 0.45,
+        }
+    )
+
+    assert session_state["progress_data"]["progress"] == 0.45
+
+
+def test_update_progress_partial_data(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.3,
+        "stage": "web_search",
+        "message": "Searching...",
+        "status": "running",
+        "error": None,
+    }
+
+    _update_progress(
+        {
+            "stage": "arxiv_search",
+        }
+    )
+
+    assert session_state["progress_data"] == {
+        "progress": 0.3,
+        "stage": "arxiv_search",
+        "message": "Searching...",
+        "status": "running",
+        "error": None,
+    }
+
+
+def test_update_progress_normalizes_processing_status(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.3,
+        "stage": "web_search",
+        "message": "Searching...",
+        "status": "running",
+        "error": None,
+    }
+
+    _update_progress(
+        {
+            "status": "processing",
+        }
+    )
+
+    assert session_state["progress_data"]["status"] == "running"
+
+
+def test_update_progress_accepts_running_status(
+    session_state,
+):
+    session_state["progress_data"] = {
+        "progress": 0.3,
+        "stage": "web_search",
+        "message": "Searching...",
+        "status": "running",
+        "error": None,
+    }
+
+    _update_progress(
+        {
+            "status": "running",
+        }
+    )
+
+    assert session_state["progress_data"]["status"] == "running"
+
+
+# _resolve_stream_closed
+
+
+def test_resolve_stream_closed_without_research_id(
     mocker,
     session_state,
 ):
-    final_result = {
-        "research_id": "abc123",
-        "topic": "AI",
-        "status": "completed",
-        "summary": "Summary",
-        "report": "Report",
-        "sources": [],
+    session_state["progress_data"] = {
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
+        "error": None,
     }
 
+    _resolve_stream_closed()
+
+    assert session_state["progress_data"] == {
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "failed",
+        "error": "Research stream ended unexpectedly.",
+    }
+
+
+def test_resolve_stream_closed_completed(
+    mocker,
+    session_state,
+):
+    session_state["research_id"] = "abc123"
     session_state["progress_data"] = {
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
+        "error": None,
+    }
+
+    mocker.patch(
+        "frontend.app.components.progress.get_research",
+        return_value={
+            "research_id": "abc123",
+            "status": "completed",
+        },
+    )
+
+    _resolve_stream_closed()
+
+    assert session_state["progress_data"] == {
         "progress": 1.0,
         "stage": "Complete",
         "message": "Research finished.",
@@ -480,124 +697,112 @@ def test_load_final_result_success(
         "error": None,
     }
 
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
 
-    get_research = mocker.patch(
-        "frontend.components.progress.get_research",
-        return_value=final_result,
-    )
-
-    rerun = mocker.patch(
-        "frontend.components.progress.st.rerun",
-        side_effect=RuntimeError("rerun"),
-    )
-
-    try:
-        _load_final_result("abc123")
-    except RuntimeError:
-        pass
-
-    get_research.assert_called_once_with("abc123")
-    assert session_state["research_result"] == final_result
-    assert session_state["page"] == "results"
-    rerun.assert_called_once()
-
-
-def test_load_final_result_existing_result(
+def test_resolve_stream_closed_failed(
     mocker,
     session_state,
 ):
-    existing_result = {
-        "research_id": "abc123",
-        "status": "completed",
-    }
-
-    session_state["research_result"] = existing_result
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
-    get_research = mocker.patch(
-        "frontend.components.progress.get_research",
-    )
-
-    rerun = mocker.patch(
-        "frontend.components.progress.st.rerun",
-        side_effect=RuntimeError("rerun"),
-    )
-
-    try:
-        _load_final_result("abc123")
-    except RuntimeError:
-        pass
-
-    get_research.assert_not_called()
-    assert session_state["page"] == "results"
-    rerun.assert_called_once()
-
-
-def test_load_final_result_request_error(
-    mocker,
-    session_state,
-):
+    session_state["research_id"] = "abc123"
     session_state["progress_data"] = {
-        "progress": 1.0,
-        "stage": "Complete",
-        "message": "Research finished.",
-        "status": "completed",
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
         "error": None,
     }
 
     mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
+        "frontend.app.components.progress.get_research",
+        return_value={
+            "research_id": "abc123",
+            "status": "failed",
+            "error": "Research failed on backend.",
+        },
     )
+
+    _resolve_stream_closed()
+
+    assert session_state["progress_data"]["status"] == "failed"
+    assert session_state["progress_data"]["error"] == "Research failed on backend."
+
+
+def test_resolve_stream_closed_active_research(
+    mocker,
+    session_state,
+):
+    session_state["research_id"] = "abc123"
+    session_state["progress_data"] = {
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
+        "error": None,
+    }
 
     mocker.patch(
-        "frontend.components.progress.get_research",
-        side_effect=requests.RequestException("Connection failed"),
+        "frontend.app.components.progress.get_research",
+        return_value={
+            "research_id": "abc123",
+            "status": "processing",
+        },
     )
 
-    _load_final_result("abc123")
+    _resolve_stream_closed()
+
+    assert session_state["progress_data"]["status"] == "failed"
+    assert (
+        session_state["progress_data"]["error"] == "Research stream ended unexpectedly."
+    )
+
+
+def test_resolve_stream_closed_request_error(
+    mocker,
+    session_state,
+):
+    session_state["research_id"] = "abc123"
+    session_state["progress_data"] = {
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
+        "error": None,
+    }
+
+    mocker.patch(
+        "frontend.app.components.progress.get_research",
+        side_effect=RequestException("connection lost"),
+    )
+
+    _resolve_stream_closed()
+
+    assert session_state["progress_data"]["status"] == "failed"
+    assert (
+        "final status could not be retrieved" in session_state["progress_data"]["error"]
+    )
+
+
+def test_resolve_stream_closed_invalid_response(
+    mocker,
+    session_state,
+):
+    session_state["research_id"] = "abc123"
+    session_state["progress_data"] = {
+        "progress": 0.8,
+        "stage": "writing_report",
+        "message": "Writing...",
+        "status": "running",
+        "error": None,
+    }
+
+    mocker.patch(
+        "frontend.app.components.progress.get_research",
+        side_effect=ValueError("Missing research_id"),
+    )
+
+    _resolve_stream_closed()
 
     assert session_state["progress_data"]["status"] == "failed"
     assert (
         session_state["progress_data"]["error"]
-        == "Could not retrieve final result: Connection failed"
-    )
-
-
-def test_load_final_result_invalid_response(
-    mocker,
-    session_state,
-):
-    session_state["progress_data"] = {
-        "progress": 1.0,
-        "stage": "Complete",
-        "message": "Research finished.",
-        "status": "completed",
-        "error": None,
-    }
-
-    mocker.patch(
-        "frontend.components.progress.st.session_state",
-        session_state,
-    )
-
-    mocker.patch(
-        "frontend.components.progress.get_research",
-        side_effect=ValueError("Invalid response"),
-    )
-
-    _load_final_result("abc123")
-
-    assert session_state["progress_data"]["status"] == "failed"
-    assert (
-        session_state["progress_data"]["error"]
-        == "Invalid response from server: Invalid response"
+        == "Invalid response from server: Missing research_id"
     )

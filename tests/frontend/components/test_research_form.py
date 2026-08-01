@@ -1,24 +1,24 @@
 from backend.app.models.enums import ResearchDepth
-from frontend.components.research_form import render_research_form
+from frontend.app.components.research_form import render_research_form
 
 
 def test_research_form_empty_topic(mocker):
     mocker.patch(
-        "frontend.components.research_form.st.text_input",
+        "frontend.app.components.research_form.st.text_input",
         return_value="",
     )
     mocker.patch(
-        "frontend.components.research_form.st.selectbox",
+        "frontend.app.components.research_form.st.selectbox",
         return_value=3,
     )
 
     button = mocker.patch(
-        "frontend.components.research_form.st.button",
+        "frontend.app.components.research_form.st.button",
         return_value=True,
     )
 
     error = mocker.patch(
-        "frontend.components.research_form.st.error",
+        "frontend.app.components.research_form.st.error",
     )
 
     render_research_form()
@@ -32,21 +32,21 @@ def test_research_form_success(
     session_state,
 ):
     mocker.patch(
-        "frontend.components.research_form.st.text_input",
+        "frontend.app.components.research_form.st.text_input",
         return_value="  Artificial Intelligence  ",
     )
     mocker.patch(
-        "frontend.components.research_form.st.selectbox",
+        "frontend.app.components.research_form.st.selectbox",
         return_value=ResearchDepth.STANDARD.value,
     )
 
     mocker.patch(
-        "frontend.components.research_form.st.button",
+        "frontend.app.components.research_form.st.button",
         return_value=True,
     )
 
     mock_start = mocker.patch(
-        "frontend.components.research_form.start_new_research",
+        "frontend.app.components.research_form.start_new_research",
         return_value={
             "research_id": "abc123",
             "status": "queued",
@@ -57,16 +57,16 @@ def test_research_form_success(
     )
 
     mocker.patch(
-        "frontend.components.research_form.st.session_state",
+        "frontend.app.components.research_form.st.session_state",
         session_state,
     )
 
     mocker.patch(
-        "frontend.components.research_form.st.spinner",
+        "frontend.app.components.research_form.st.spinner",
     )
 
     rerun = mocker.patch(
-        "frontend.components.research_form.st.rerun",
+        "frontend.app.components.research_form.st.rerun",
     )
 
     render_research_form()

@@ -3,14 +3,14 @@ from unittest.mock import patch
 import pytest
 import requests
 
-from frontend.utils import research as research_module
+from frontend.app.utils import research as research_module
 
 
 @pytest.fixture
 def mock_start_research():
     """Mock the API client used by the utility module."""
     with patch(
-        "frontend.utils.research.start_research",
+        "frontend.app.utils.research.start_research",
     ) as mock:
         yield mock
 
@@ -19,7 +19,7 @@ def mock_start_research():
 def mock_get_research():
     """Mock the API client used by the utility module."""
     with patch(
-        "frontend.utils.research.get_research",
+        "frontend.app.utils.research.get_research",
     ) as mock:
         yield mock
 
@@ -28,7 +28,7 @@ def mock_get_research():
 def mock_stream_research():
     """Mock the SSE client used by the utility module."""
     with patch(
-        "frontend.utils.research.stream_research",
+        "frontend.app.utils.research.stream_research",
     ) as mock:
         yield mock
 
@@ -189,7 +189,7 @@ def test_run_research_timeout(mock_stream_research):
     )
 
     with patch(
-        "frontend.utils.research.time.monotonic",
+        "frontend.app.utils.research.time.monotonic",
         side_effect=[0, 1, 10],
     ):
         result = research_module.run_research(
@@ -301,9 +301,7 @@ def test_run_research_closed_stream_incomplete(
     )
 
     assert result["status"] == "failed"
-    assert result["error"] == (
-        "Research stream ended before completion."
-    )
+    assert result["error"] == ("Research stream ended before completion.")
 
 
 def test_run_research_network_error(mock_stream_research):
@@ -318,9 +316,7 @@ def test_run_research_network_error(mock_stream_research):
     )
 
     assert result["status"] == "failed"
-    assert result["error"] == (
-        "Network error: Connection refused"
-    )
+    assert result["error"] == ("Network error: Connection refused")
 
 
 def test_run_research_unexpected_error(mock_stream_research):
@@ -335,9 +331,7 @@ def test_run_research_unexpected_error(mock_stream_research):
     )
 
     assert result["status"] == "failed"
-    assert result["error"] == (
-        "Unexpected error: Unexpected failure"
-    )
+    assert result["error"] == ("Unexpected error: Unexpected failure")
 
 
 def test_run_research_final_fetch_network_error(

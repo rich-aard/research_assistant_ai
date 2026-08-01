@@ -3,7 +3,7 @@ from typing import Any
 
 import requests
 
-from frontend.api.research import (
+from frontend.app.api.research import (
     get_research,
     start_research,
     stream_research,

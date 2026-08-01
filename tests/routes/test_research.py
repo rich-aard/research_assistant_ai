@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
@@ -236,20 +237,24 @@ async def test_stream_research_success(mocker):
 
     assert events[0] == {
         "event": "progress",
-        "data": {
-            "status": mock_task.status,
-            "stage": mock_task.stage,
-            "progress": mock_task.progress,
-        },
+        "data": json.dumps(
+            {
+                "status": mock_task.status,
+                "stage": mock_task.stage,
+                "progress": mock_task.progress,
+            }
+        ),
     }
 
     assert events[1] == {
         "event": "progress",
-        "data": {
-            "status": TaskStatus.PROCESSING,
-            "stage": TaskStage.PLANNING,
-            "progress": 20,
-        },
+        "data": json.dumps(
+            {
+                "status": TaskStatus.PROCESSING,
+                "stage": TaskStage.PLANNING,
+                "progress": 20,
+            }
+        ),
     }
 
     mock_unsubscribe.assert_called_once_with(
