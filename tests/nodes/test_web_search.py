@@ -2,7 +2,17 @@ import pytest
 
 from backend.app.models.enums import SearchSource
 from backend.app.models.search import SearchResult
+from backend.app.models.search_query import SearchQuery
 from backend.app.nodes.web_search import web_search_node
+
+
+def make_search_query(
+    query: str,
+) -> SearchQuery:
+    return SearchQuery(
+        query=query,
+        sources=[SearchSource.WEB],
+    )
 
 
 def make_search_result(
@@ -42,8 +52,12 @@ async def test_web_search_node_success(mocker):
 
     state = {
         "queries": [
-            "artificial intelligence research",
-            "machine learning research",
+            make_search_query(
+                "artificial intelligence research",
+            ),
+            make_search_query(
+                "machine learning research",
+            ),
         ],
     }
 
@@ -52,8 +66,12 @@ async def test_web_search_node_success(mocker):
     assert result["web_results"] == results
     assert mock_search.call_count == 2
 
-    mock_search.assert_any_call("artificial intelligence research")
-    mock_search.assert_any_call("machine learning research")
+    mock_search.assert_any_call(
+        "artificial intelligence research",
+    )
+    mock_search.assert_any_call(
+        "machine learning research",
+    )
 
 
 @pytest.mark.asyncio
@@ -105,8 +123,8 @@ async def test_web_search_node_partial_failure(mocker):
     result = await web_search_node(
         {
             "queries": [
-                "successful query",
-                "failing query",
+                make_search_query("successful query"),
+                make_search_query("failing query"),
             ],
         }
     )
@@ -129,8 +147,8 @@ async def test_web_search_node_all_fail(mocker):
     result = await web_search_node(
         {
             "queries": [
-                "query one",
-                "query two",
+                make_search_query("query one"),
+                make_search_query("query two"),
             ],
         }
     )
@@ -140,3 +158,26 @@ async def test_web_search_node_all_fail(mocker):
     }
 
     assert mock_search.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_web_search_node_skips_invalid_query(mocker):
+    mock_search = mocker.patch(
+        "backend.app.nodes.web_search.search_web",
+        return_value=[],
+    )
+
+    result = await web_search_node(
+        {
+            "queries": [
+                "invalid query",
+                make_search_query("valid query"),
+            ],
+        }
+    )
+
+    assert result == {
+        "web_results": [],
+    }
+
+    mock_search.assert_called_once_with("valid query")
